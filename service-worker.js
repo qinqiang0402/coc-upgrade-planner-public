@@ -1,4 +1,4 @@
-const CACHE_NAME = 'coc-upgrade-planner-v0.1.0';
+const CACHE_NAME = 'coc-upgrade-planner-v0.2.0';
 const APP_FILES = [
   './', './index.html', './styles.css', './core.js', './app.js', './pwa.js',
   './data/upgrades.js', './sources.html', './manifest.webmanifest', './icon.svg'

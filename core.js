@@ -1,4 +1,14 @@
 (function (global) {
+  function normalizeExtraBoost(value) {
+    if (value === 'returning50' || Number(value) === 50) return 'returning50';
+    if (value === 'hammerJam50') return 'hammerJam50';
+    return 'none';
+  }
+
+  function isHammerJamEligible(item) {
+    return item.v === 'home' && item.s !== 'instant' && item.c !== 'supercharge' && item.c !== 'crafted';
+  }
+
   function gameRoundedTime(seconds, hasReduction) {
     seconds = Math.max(0, seconds || 0);
     if (!hasReduction || !seconds) return Math.ceil(seconds);
@@ -14,9 +24,10 @@
       : item.l.filter(row => row[0] >= current && row[0] < target);
     quantity = Math.max(1, Math.round(quantity || 1));
     const boost = Number(settings?.boost) || 0;
-    const returnBoost = Number(settings?.returnBoost) || 0;
-    const costFactor = item.s === 'instant' ? 1 : (1 - boost / 100);
-    const timeFactor = item.s === 'instant' ? 1 : costFactor * (1 - returnBoost / 100);
+    const extraBoost = normalizeExtraBoost(settings?.extraBoost ?? settings?.returnBoost);
+    const hammerFactor = extraBoost === 'hammerJam50' && isHammerJamEligible(item) ? 0.5 : 1;
+    const costFactor = item.s === 'instant' ? 1 : (1 - boost / 100) * hammerFactor;
+    const timeFactor = item.s === 'instant' ? 1 : costFactor * (extraBoost === 'returning50' ? 0.5 : 1);
     const costs = {};
     let baseTime = 0;
     let time = 0;
@@ -32,5 +43,5 @@
     return { item, current, target, quantity, baseTime, time, costs };
   }
 
-  global.COC_CORE = { gameRoundedTime, calculateSelection };
+  global.COC_CORE = { gameRoundedTime, calculateSelection, normalizeExtraBoost, isHammerJamEligible };
 })(globalThis);

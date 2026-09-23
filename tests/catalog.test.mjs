@@ -60,9 +60,50 @@ test('generated data is in sync with the editable source files', () => {
 test('Battle Machine 5→6 matches the user screenshot under Gold Pass 20%', () => {
   const machine = catalog.items.find(item => item.e === 'Battle Machine');
   assert.equal(machine.m, 'from');
-  const result = core.COC_CORE.calculateSelection(machine, 5, 6, 1, { boost: 20, returnBoost: 0 });
+  const result = core.COC_CORE.calculateSelection(machine, 5, 6, 1, { boost: 20, extraBoost: 'none' });
   assert.equal(result.time, 14 * 3600 + 20 * 60);
   assert.equal(result.costs['Builder Elixir'], 1_200_000);
+});
+
+test('Hammer Jam halves eligible Home Village time and cost', () => {
+  const building = catalog.items.find(item => item.e === 'Dark Spell Factory');
+  const regular = core.COC_CORE.calculateSelection(building, 0, 1, 1, { boost: 0, extraBoost: 'none' });
+  const hammer = core.COC_CORE.calculateSelection(building, 0, 1, 1, { boost: 0, extraBoost: 'hammerJam50' });
+  assert.equal(hammer.time, regular.time / 2);
+  assert.equal(hammer.costs.Elixir, regular.costs.Elixir / 2);
+});
+
+test('Hammer Jam and Gold Pass are estimated multiplicatively', () => {
+  const building = catalog.items.find(item => item.e === 'Dark Spell Factory');
+  const result = core.COC_CORE.calculateSelection(building, 0, 1, 1, { boost: 20, extraBoost: 'hammerJam50' });
+  assert.equal(result.time, 2 * 3600 + 20 * 60);
+  assert.equal(result.costs.Elixir, 52_000);
+});
+
+test('Hammer Jam excludes Supercharges, Crafted Defenses and Builder Base', () => {
+  const excluded = [
+    catalog.items.find(item => item.c === 'supercharge'),
+    catalog.items.find(item => item.c === 'crafted'),
+    catalog.items.find(item => item.v === 'builderBase' && item.c === 'building')
+  ];
+  for (const item of excluded) {
+    assert.equal(core.COC_CORE.isHammerJamEligible(item), false, item.e);
+    const current = item.m === 'to' ? 0 : item.l[0][0];
+    const normal = core.COC_CORE.calculateSelection(item, current, current + 1, 1, { boost: 0, extraBoost: 'none' });
+    const hammer = core.COC_CORE.calculateSelection(item, current, current + 1, 1, { boost: 0, extraBoost: 'hammerJam50' });
+    assert.equal(hammer.time, normal.time, item.e);
+    assert.deepEqual({ ...hammer.costs }, { ...normal.costs }, item.e);
+  }
+});
+
+test('returning boost remains time-only and old saved value remains readable', () => {
+  assert.equal(core.COC_CORE.normalizeExtraBoost(50), 'returning50');
+  assert.equal(core.COC_CORE.normalizeExtraBoost('hammerJam50'), 'hammerJam50');
+  const building = catalog.items.find(item => item.e === 'Dark Spell Factory');
+  const regular = core.COC_CORE.calculateSelection(building, 0, 1, 1, { boost: 0, extraBoost: 'none' });
+  const returning = core.COC_CORE.calculateSelection(building, 0, 1, 1, { boost: 0, extraBoost: 'returning50' });
+  assert.equal(returning.time, regular.time / 2);
+  assert.deepEqual({ ...returning.costs }, { ...regular.costs });
 });
 
 test('the standalone page includes every app control and local asset', async () => {

@@ -102,11 +102,13 @@
           <option value="20">20% 减时与减费</option>
         </select>
       </label>
-      <label class="form-label" for="coc-return-boost">账号限时加速
-        <select class="form-select" id="coc-return-boost">
-          <option value="0">无额外加速</option>
-          <option value="50">回归玩家 50%（只减时间）</option>
+      <label class="form-label" for="coc-extra-boost">额外加速
+        <select class="form-select" id="coc-extra-boost">
+          <option value="none">无额外加速</option>
+          <option value="returning50">回归玩家 50%（只减时间）</option>
+          <option value="hammerJam50">夯木节 50%（减时与减费）</option>
         </select>
+        <small class="text-muted">夯木节按官方 2025 年活动规则模拟：仅家乡，不含超级充能和精工防御；与黄金令牌叠加为估算。</small>
       </label>
       <label class="form-label" for="coc-builder-helper">建筑助手（学徒）
         <select class="form-select" id="coc-builder-helper">
@@ -248,7 +250,7 @@
     </section>
 
     <div class="text-small text-muted coc-notes">
-      当前载入 <span id="coc-data-count">0</span> 项，数据版本 <span id="coc-data-version">—</span>。未逐项复核的时间和费用仅供规划；游戏内实际显示优先。回归加速与其他限时活动请按自己的账号情况选择，未列出的活动不会自动套用。助手按已就绪且持续使用估算。方案保存在当前浏览器；换设备或清理浏览器数据前，请先使用“导出备份”。
+      当前载入 <span id="coc-data-count">0</span> 项，数据版本 <span id="coc-data-version">—</span>。未逐项复核的时间和费用仅供规划；游戏内实际显示优先。额外加速仅用于手动模拟，不表示活动当前生效；未列出的活动不会自动套用。助手按已就绪且持续使用估算。方案保存在当前浏览器；换设备或清理浏览器数据前，请先使用“导出备份”。
     </div>
   </div>
 </div>

@@ -9,7 +9,7 @@
   }
   const DATA = catalog.items;
   const CATALOG_META = catalog.meta;
-  const { calculateSelection } = window.COC_CORE;
+  const { calculateSelection, normalizeExtraBoost } = window.COC_CORE;
   const correctionsByStep = new Map((CATALOG_META.corrections || []).map(correction => [`${correction.itemId}:${correction.fromLevel}:${correction.toLevel}`, correction]));
   const byId = new Map(DATA.map(item => [item.i, item]));
   const plan = [];
@@ -23,7 +23,7 @@
   const els = {
     village: $('coc-village'), category: $('coc-category'), search: $('coc-search'), item: $('coc-item'),
     current: $('coc-current'), target: $('coc-target'), quantity: $('coc-quantity'), quantityLabel: $('coc-quantity-label'),
-    boost: $('coc-boost'), returnBoost: $('coc-return-boost'), builderHelper: $('coc-builder-helper'), labHelper: $('coc-lab-helper'),
+    boost: $('coc-boost'), extraBoost: $('coc-extra-boost'), builderHelper: $('coc-builder-helper'), labHelper: $('coc-lab-helper'),
     homeBuilders: $('coc-home-builders'), bbBuilders: $('coc-bb-builders'), add: $('coc-add'),
     selectedName: $('coc-selected-name'), selectedMeta: $('coc-selected-meta'), selectedBadge: $('coc-selected-badge'), preview: $('coc-preview'),
     totalWork: $('coc-total-work'), baseWork: $('coc-base-work'), calendarTime: $('coc-calendar-time'), finish: $('coc-finish'), finishContext: $('coc-finish-context'),
@@ -69,7 +69,7 @@
   const escapeHtml = value => String(value ?? '').replace(/[&<>'"]/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
   const captureSettings = () => ({
     boost: Number(els.boost.value) || 0,
-    returnBoost: Number(els.returnBoost.value) || 0,
+    extraBoost: els.extraBoost.value,
     builderHelper: Number(els.builderHelper.value) || 0,
     labHelper: Number(els.labHelper.value) || 0,
     homeBuilders: Number(els.homeBuilders.value) || 1,
@@ -77,7 +77,7 @@
   });
   const normalizedSettings = settings => ({
     boost: [0, 10, 15, 20].includes(Number(settings?.boost)) ? Number(settings.boost) : 0,
-    returnBoost: [0, 50].includes(Number(settings?.returnBoost)) ? Number(settings.returnBoost) : 0,
+    extraBoost: normalizeExtraBoost(settings?.extraBoost ?? settings?.returnBoost),
     builderHelper: Math.max(0, Math.min(8, Math.round(Number(settings?.builderHelper) || 0))),
     labHelper: Math.max(0, Math.min(12, Math.round(Number(settings?.labHelper) || 0))),
     homeBuilders: Math.max(1, Math.min(6, Math.round(Number(settings?.homeBuilders) || 6))),
@@ -86,7 +86,7 @@
   const applySettings = settings => {
     const safe = normalizedSettings(settings);
     els.boost.value = String(safe.boost);
-    els.returnBoost.value = String(safe.returnBoost);
+    els.extraBoost.value = safe.extraBoost;
     els.builderHelper.value = String(safe.builderHelper);
     els.labHelper.value = String(safe.labHelper);
     els.homeBuilders.value = String(safe.homeBuilders);
@@ -108,19 +108,19 @@
     return [{ id: item.i, current, target, quantity }];
   });
   const packState = () => ({
-    v: 1,
+    v: 2,
     a: activePlanId,
     p: savedPlans.map(saved => ({
       i: saved.id,
       n: saved.name,
       e: saved.entries.map(entry => [entry.id, entry.current, entry.target, entry.quantity]),
-      s: [saved.settings.boost, saved.settings.returnBoost, saved.settings.builderHelper, saved.settings.labHelper, saved.settings.homeBuilders, saved.settings.bbBuilders],
+      s: [saved.settings.boost, saved.settings.extraBoost, saved.settings.builderHelper, saved.settings.labHelper, saved.settings.homeBuilders, saved.settings.bbBuilders],
       u: saved.updatedAt
     }))
   });
   const unpackState = raw => {
     const source = raw?.privateContent || raw;
-    if (!source || source.v !== 1 || !Array.isArray(source.p)) return null;
+    if (!source || ![1, 2].includes(source.v) || !Array.isArray(source.p)) return null;
     const plans = source.p.flatMap(saved => {
       const name = String(saved?.n || '').trim().slice(0, 40);
       const id = String(saved?.i || '').slice(0, 80);
@@ -131,7 +131,7 @@
         id,
         name,
         entries,
-        settings: normalizedSettings({ boost: settingsArray[0], returnBoost: settingsArray[1], builderHelper: settingsArray[2], labHelper: settingsArray[3], homeBuilders: settingsArray[4], bbBuilders: settingsArray[5] }),
+        settings: normalizedSettings({ boost: settingsArray[0], extraBoost: settingsArray[1], builderHelper: settingsArray[2], labHelper: settingsArray[3], homeBuilders: settingsArray[4], bbBuilders: settingsArray[5] }),
         updatedAt: Number(saved?.u) || Date.now()
       }];
     });
@@ -158,7 +158,8 @@
     const safe = normalizedSettings(settings);
     const parts = [];
     if (safe.boost) parts.push(`令牌${safe.boost}%`);
-    if (safe.returnBoost) parts.push(`回归${safe.returnBoost}%`);
+    if (safe.extraBoost === 'returning50') parts.push('回归50%');
+    if (safe.extraBoost === 'hammerJam50') parts.push('夯木节50%');
     if (safe.builderHelper) parts.push(`建筑助手${safe.builderHelper}级`);
     if (safe.labHelper) parts.push(`实验室助手${safe.labHelper}级`);
     parts.push(`工人 ${safe.homeBuilders}/${safe.bbBuilders}`);
@@ -225,9 +226,10 @@
 
   const reductionNote = (item, settings = captureSettings()) => {
     const notes = [];
-    const { boost, returnBoost, builderHelper, labHelper } = normalizedSettings(settings);
+    const { boost, extraBoost, builderHelper, labHelper } = normalizedSettings(settings);
     if (boost) notes.push(`${boost}% 黄金令牌`);
-    if (returnBoost) notes.push(`${returnBoost}% 回归加速（仅时间）`);
+    if (extraBoost === 'returning50') notes.push('50% 回归加速（仅时间）');
+    if (extraBoost === 'hammerJam50') notes.push(!item ? '50% 夯木节（仅适用项目）' : window.COC_CORE.isHammerJamEligible(item) ? '50% 夯木节（时间与费用）' : '夯木节不适用于此项目');
     if (builderHelper && (!item || item.s === 'home_builder')) notes.push(`建筑助手${builderHelper}级`);
     if (labHelper && (!item || item.s === 'home_lab')) notes.push(`实验室助手${labHelper}级`);
     return notes.length ? `已应用 ${notes.join(' · ')}` : '原始数据';
@@ -415,12 +417,12 @@
 
   function renderPlan() {
     const settings = captureSettings();
-    const { boost, returnBoost, builderHelper, labHelper } = settings;
+    const { boost, extraBoost, builderHelper, labHelper } = settings;
     const summary = summarizePlan(plan, settings);
     currentSummary = summary;
     const { results, streams, totalCosts, totalTime, baseTime, calendar } = summary;
     els.totalWork.textContent = totalTime ? duration(totalTime) : '0秒';
-    els.baseWork.textContent = plan.length ? ((boost || returnBoost || builderHelper || labHelper) ? `原始 ${duration(baseTime)} · ${reductionNote()}` : '未使用任何减免') : '尚未加入项目';
+    els.baseWork.textContent = plan.length ? ((boost || extraBoost !== 'none' || builderHelper || labHelper) ? `原始 ${duration(baseTime)} · ${reductionNote()}` : '未使用任何减免') : '尚未加入项目';
     els.calendarTime.textContent = calendar ? duration(calendar) : '0秒';
     if (calendar) {
       const finishDate = new Date(Date.now() + calendar * 1000);
@@ -666,7 +668,7 @@
   els.target.addEventListener('change', updatePreview);
   els.quantity.addEventListener('input', updatePreview);
   els.boost.addEventListener('change', () => { markPlanDirty(); updatePreview(); renderLevelTable(); renderPlan(); });
-  els.returnBoost.addEventListener('change', () => { markPlanDirty(); updatePreview(); renderLevelTable(); renderPlan(); });
+  els.extraBoost.addEventListener('change', () => { markPlanDirty(); updatePreview(); renderLevelTable(); renderPlan(); });
   els.builderHelper.addEventListener('change', () => { markPlanDirty(); updatePreview(); renderLevelTable(); renderPlan(); });
   els.labHelper.addEventListener('change', () => { markPlanDirty(); updatePreview(); renderLevelTable(); renderPlan(); });
   els.homeBuilders.addEventListener('change', () => { markPlanDirty(); renderPlan(); });
