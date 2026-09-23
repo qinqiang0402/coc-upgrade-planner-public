@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0c1713">
+  <link rel="stylesheet" href="./styles.css">
+  <title>数据来源 · 部落冲突升级规划器</title>
+  <style>
+    .source-page { max-width: 850px; margin: 0 auto; }
+    .source-page section { margin: 18px 0; }
+    .source-page h2 { margin-top: 0; font-size: 20px; }
+    .source-page li { margin: 9px 0; }
+    .source-page p { color: #cfdbcf; }
+  </style>
+</head>
+<body>
+  <div class="page-shell source-page">
+    <header class="site-header">
+      <a href="./index.html">← 返回计算器</a>
+      <h1>数据从哪里来？</h1>
+      <p>第一版把来源、已知修正和还没确认的部分公开说明。</p>
+    </header>
+    <section class="card">
+      <h2>当前数据状态</h2>
+      <p>基础表来自第三方 <a href="https://github.com/ClashKingInc/clashy.go/blob/main/static/static_data.json" rel="noopener noreferrer">ClashKingInc/clashy.go 的静态数据</a>，此前页面标注的基准核对日期是 2026-07-21。它不是 Supercell 官方 API，也没有逐项核对保证。已知 2026 年 8 月官方新增的 Diggy 11–15 级尚未收录；建筑工人小屋和巨石碑的新增超级充能等级也待核对。因此页面显示的最高等级不一定是当前游戏上限。</p>
+      <p>Supercell 的 <a href="https://developer.clashofclans.com/" rel="noopener noreferrer">官方 API</a>主要面向玩家与部落资料；官方<a href="https://supercell.com/en/games/clashofclans/blog/release-notes/august-update-3/" rel="noopener noreferrer">更新公告</a>可以帮助发现新内容，但不提供完整实时升级表。</p>
+    </section>
+    <section class="card">
+      <h2>已记录的校正</h2>
+      <p>战争机器 5→6：旧数据给出 36 小时，但用户提供的游戏内截图显示，在黄金令牌减时 20% 时，实际为 <strong>14 小时 20 分钟</strong>。第一版暂按 18 小时基础时长计算：18 小时 × 80% = 14 小时 24 分钟，按观察到的 10 分钟显示精度向下取整，得到 14 小时 20 分钟。</p>
+      <p><strong>注意：</strong>18 小时基础时长是依据截图反推的暂定值，尚未用无加成的游戏内画面独立证实。因此该行标记为“截图校正 · 基础值推定”。</p>
+    </section>
+    <section class="card">
+      <h2>后续如何保持可靠</h2>
+      <ol>
+        <li>每次游戏更新后，对比新增、删除、变动的项目，不自动照单更新。</li>
+        <li>对改动逐级记录来源、日期和确认状态；冲突数值优先以相同加成条件下的游戏内显示为准。</li>
+        <li>运行数据结构与关键案例测试，再发布新版本。</li>
+        <li>页面展示数据版本和未核对警告，不把旧数据包装成“最新”。</li>
+      </ol>
+    </section>
+    <footer class="site-footer">非官方个人工具。方案只保存在你的当前浏览器；导出备份可在换设备时使用。</footer>
+  </div>
+</body>
+</html>

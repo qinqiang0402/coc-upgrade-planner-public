@@ -1,0 +1,14 @@
+{
+  "id": "./",
+  "name": "部落冲突升级规划器",
+  "short_name": "升级规划器",
+  "description": "计算部落冲突逐级升级时间与资源，保存并比较多个方案。",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0b1512",
+  "theme_color": "#0c1713",
+  "icons": [
+    { "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

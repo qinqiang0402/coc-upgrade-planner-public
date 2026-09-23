@@ -1,0 +1,14 @@
+[
+  {
+    "itemId": "u182",
+    "itemName": "战争机器 / Battle Machine",
+    "fromLevel": 5,
+    "toLevel": 6,
+    "field": "timeSeconds",
+    "oldValue": 129600,
+    "newValue": 64800,
+    "status": "inferred",
+    "evidence": "用户提供的游戏内升级截图：黄金令牌减时 20% 时，5→6 显示 14 小时 20 分钟。",
+    "reason": "18 小时基础时长 × 0.8 = 14 小时 24 分钟，按游戏中观察到的 10 分钟显示精度向下取整为 14 小时 20 分钟。基础时长尚未在无加成画面单独核对。"
+  }
+]

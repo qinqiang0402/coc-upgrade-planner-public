@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0c1713">
+  <meta name="description" content="部落冲突升级时间与资源计算器：逐级明细、加成模拟和多方案比较。">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="./icon.svg">
+  <link rel="stylesheet" href="./styles.css">
+  <title>部落冲突升级规划器</title>
+</head>
+<body>
+  <div class="page-shell">
+    <header class="site-header">
+      <div class="brand-lockup"><span class="brand-symbol" aria-hidden="true">⚒</span><div><span class="eyebrow">CLASH UPGRADE PLANNER</span><h1>部落冲突升级规划器</h1></div></div>
+      <p>逐级核算时间与资源，保存方案，再比较哪条升级路线更合适。</p>
+    </header>
+    <section class="data-banner" aria-label="数据状态">
+      <div><span class="status-pill">第一版 · 数据待复核</span><strong>升级数值来自第三方快照，游戏内显示优先</strong><p>基准数据标注核对于 <span id="catalog-date">2026-07-21</span>。已知未收录：<span id="catalog-gaps">2026 年 8 月新增等级</span>。请勿将当前最高等级视为游戏内上限。</p></div>
+      <a href="./sources.html">查看数据来源与更新规则 →</a>
+    </section>
+    <main>
+<div id="coc-upgrade-calculator">
+  <div class="coc-stack">
+    <div class="viz-controls" aria-label="升级项目筛选">
+      <label class="form-label" for="coc-village">村庄
+        <select class="form-select" id="coc-village">
+          <option value="all">全部村庄</option>
+          <option value="home" selected>家乡</option>
+          <option value="builderBase">建筑大师基地</option>
+        </select>
+      </label>
+      <label class="form-label" for="coc-category">类型
+        <select class="form-select" id="coc-category"></select>
+      </label>
+      <label class="form-label" for="coc-search">搜索项目
+        <input class="form-control" id="coc-search" type="search" placeholder="输入中文或英文名称">
+      </label>
+      <label class="form-label" for="coc-item">升级项目
+        <select class="form-select" id="coc-item"></select>
+      </label>
+    </div>
+
+    <section class="card" id="coc-selected-card" aria-live="polite">
+      <div class="viz-row coc-selected-heading">
+        <div>
+          <div id="coc-selected-name">—</div>
+          <div class="text-small" id="coc-selected-meta">—</div>
+        </div>
+        <span class="viz-badge" id="coc-selected-badge">—</span>
+      </div>
+      <div class="viz-controls coc-level-controls">
+        <label class="form-label" for="coc-current">当前等级
+          <select class="form-select" id="coc-current"></select>
+        </label>
+        <label class="form-label" for="coc-target">目标等级
+          <select class="form-select" id="coc-target"></select>
+        </label>
+        <label class="form-label" for="coc-quantity" id="coc-quantity-label">数量
+          <input class="form-control" id="coc-quantity" type="number" min="1" max="500" value="1" inputmode="numeric">
+        </label>
+        <div class="coc-add-wrap">
+          <button class="btn btn-primary" id="coc-add" type="button">
+            <i data-lucide="plus" aria-hidden="true"></i>加入方案
+          </button>
+        </div>
+      </div>
+      <div class="text-small" id="coc-preview">—</div>
+    </section>
+
+    <section aria-labelledby="coc-level-title">
+      <details class="coc-level-details" open>
+        <summary class="coc-level-summary">
+          <span class="coc-level-title" id="coc-level-title">逐级升级明细</span>
+          <span class="text-small" id="coc-level-boost-note">原始数据</span>
+        </summary>
+        <div class="table-responsive">
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                <th>升级</th>
+                <th>解锁条件</th>
+                <th class="text-end">所需时间</th>
+                <th class="text-end">所需资源</th>
+              </tr>
+            </thead>
+            <tbody id="coc-level-body">
+              <tr><td colspan="4" class="text-center text-muted">选择项目后显示全部等级</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
+    </section>
+
+    <div class="viz-controls" aria-label="计算设置">
+      <label class="form-label" for="coc-boost">黄金令牌加成
+        <select class="form-select" id="coc-boost">
+          <option value="0">无加成</option>
+          <option value="10">10% 减时与减费</option>
+          <option value="15">15% 减时与减费</option>
+          <option value="20">20% 减时与减费</option>
+        </select>
+      </label>
+      <label class="form-label" for="coc-return-boost">账号限时加速
+        <select class="form-select" id="coc-return-boost">
+          <option value="0">无额外加速</option>
+          <option value="50">回归玩家 50%（只减时间）</option>
+        </select>
+      </label>
+      <label class="form-label" for="coc-builder-helper">建筑助手（学徒）
+        <select class="form-select" id="coc-builder-helper">
+          <option value="0">未启用</option>
+          <option value="1">1级 · 每次节省1小时</option>
+          <option value="2">2级 · 每次节省2小时</option>
+          <option value="3">3级 · 每次节省3小时</option>
+          <option value="4">4级 · 每次节省4小时</option>
+          <option value="5">5级 · 每次节省5小时</option>
+          <option value="6">6级 · 每次节省6小时</option>
+          <option value="7">7级 · 每次节省7小时</option>
+          <option value="8">8级 · 每次节省8小时</option>
+        </select>
+      </label>
+      <label class="form-label" for="coc-lab-helper">实验室助手
+        <select class="form-select" id="coc-lab-helper">
+          <option value="0">未启用</option>
+          <option value="1">1级 · 每次节省1小时</option>
+          <option value="2">2级 · 每次节省2小时</option>
+          <option value="3">3级 · 每次节省3小时</option>
+          <option value="4">4级 · 每次节省4小时</option>
+          <option value="5">5级 · 每次节省5小时</option>
+          <option value="6">6级 · 每次节省6小时</option>
+          <option value="7">7级 · 每次节省7小时</option>
+          <option value="8">8级 · 每次节省8小时</option>
+          <option value="9">9级 · 每次节省9小时</option>
+          <option value="10">10级 · 每次节省10小时</option>
+          <option value="11">11级 · 每次节省11小时</option>
+          <option value="12">12级 · 每次节省12小时</option>
+        </select>
+      </label>
+      <label class="form-label" for="coc-home-builders">家乡建筑工人
+        <select class="form-select" id="coc-home-builders">
+          <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option selected>6</option>
+        </select>
+      </label>
+      <label class="form-label" for="coc-bb-builders">建筑大师基地工人
+        <select class="form-select" id="coc-bb-builders">
+          <option>1</option><option>2</option><option selected>3</option>
+        </select>
+      </label>
+    </div>
+
+    <section class="card coc-plan-manager" aria-labelledby="coc-plan-manager-title">
+      <div class="viz-row coc-section-heading">
+        <div>
+          <h3 id="coc-plan-manager-title">方案管理</h3>
+          <div class="text-small">给当前方案命名并保存，之后可直接切换或横向比较。</div>
+        </div>
+        <span class="viz-badge" id="coc-plan-status" aria-live="polite">当前方案尚未保存</span>
+      </div>
+      <div class="viz-controls coc-plan-manager-controls">
+        <label class="form-label coc-plan-name-control" for="coc-plan-name">方案名称
+          <input class="form-control" id="coc-plan-name" type="text" maxlength="40" placeholder="例如：速升大本营方案">
+        </label>
+        <label class="form-label" for="coc-saved-plan-select">已保存方案
+          <select class="form-select" id="coc-saved-plan-select">
+            <option value="">选择方案…</option>
+          </select>
+        </label>
+        <div class="coc-plan-actions">
+          <button class="btn btn-primary" id="coc-save-plan" type="button">保存当前方案</button>
+          <button class="btn" id="coc-new-plan" type="button">新建空白方案</button>
+          <button class="btn" id="coc-export-plans" type="button">导出备份</button>
+          <button class="btn" id="coc-import-plans" type="button">导入备份</button>
+          <input id="coc-import-file" type="file" accept=".json,application/json" hidden>
+        </div>
+      </div>
+    </section>
+
+    <div class="viz-grid coc-stats" aria-label="方案总计">
+      <div class="card viz-stat">
+        <div class="text-muted">总升级工时</div>
+        <div class="viz-stat-value" id="coc-total-work">0秒</div>
+        <div class="text-small" id="coc-base-work">尚未加入项目</div>
+      </div>
+      <div class="card viz-stat">
+        <div class="text-muted">理想并行时间</div>
+        <div class="viz-stat-value" id="coc-calendar-time">0秒</div>
+        <div class="text-small">按工人数量及助手设置持续满负荷估算</div>
+      </div>
+      <div class="card viz-stat">
+        <div class="text-muted">预计完成</div>
+        <div class="viz-stat-value" id="coc-finish">—</div>
+        <div class="text-small" id="coc-finish-context">加入项目后计算</div>
+      </div>
+    </div>
+
+    <section class="card coc-saved-plans" aria-labelledby="coc-saved-plans-title">
+      <div class="viz-row coc-section-heading">
+        <div>
+          <h3 id="coc-saved-plans-title">已保存方案对比</h3>
+          <div class="text-small">统一按各方案自己的加成与工人设置重新计算。</div>
+        </div>
+        <span class="viz-badge" id="coc-saved-plan-count">0 个方案</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm">
+          <thead>
+            <tr><th>方案</th><th>升级项目</th><th>总工时</th><th>理想并行时间</th><th>总费用</th><th>操作</th></tr>
+          </thead>
+          <tbody id="coc-saved-plan-body">
+            <tr><td colspan="6" class="text-center text-muted">还没有保存方案。为当前方案命名后点击“保存当前方案”。</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section aria-labelledby="coc-lanes-title">
+      <div class="viz-row coc-section-heading">
+        <h3 id="coc-lanes-title">各升级队列负载</h3>
+        <span class="text-small" id="coc-queue-count">0 个项目</span>
+      </div>
+      <div class="coc-lanes" id="coc-lanes" role="img" aria-label="暂无升级队列数据"></div>
+    </section>
+
+    <section aria-labelledby="coc-list-title">
+      <div class="viz-row coc-section-heading">
+        <h3 id="coc-list-title">升级方案</h3>
+        <span class="text-small" id="coc-cost-summary">费用：—</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm">
+          <thead>
+            <tr>
+              <th>项目</th>
+              <th>等级</th>
+              <th class="text-end">数量</th>
+              <th class="text-end">时间</th>
+              <th class="text-end">费用</th>
+              <th><span class="sr-only">操作</span></th>
+            </tr>
+          </thead>
+          <tbody id="coc-plan-body">
+            <tr><td colspan="6" class="text-center text-muted">从上方选择升级项目并加入方案</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="text-small text-muted coc-notes">
+      当前载入 <span id="coc-data-count">0</span> 项，数据版本 <span id="coc-data-version">—</span>。未逐项复核的时间和费用仅供规划；游戏内实际显示优先。回归加速与其他限时活动请按自己的账号情况选择，未列出的活动不会自动套用。助手按已就绪且持续使用估算。方案保存在当前浏览器；换设备或清理浏览器数据前，请先使用“导出备份”。
+    </div>
+  </div>
+</div>
+    </main>
+    <footer class="site-footer">这是非官方个人工具，与 Supercell 无隶属关系。请以游戏内实际升级界面为准。</footer>
+  </div>
+  <script defer src="./data/upgrades.js"></script>
+  <script defer src="./core.js"></script>
+  <script defer src="./app.js"></script>
+  <script defer src="./pwa.js"></script>
+</body>
+</html>
