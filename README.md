@@ -26,4 +26,4 @@ npm test             检查数据结构与关键升级案例
 npm start            在本机预览
 ```
 
-主要文件：`index.html` 是界面，`styles.css` 是样式，`app.js` 是计算与交互，`data/*.json` 是数据源，`scripts/build-data.mjs` 负责构建。项目使用 GitHub 私有仓库保存代码；尚未发布为公开网站。
+主要文件：`index.html` 是界面，`styles.css` 是样式，`app.js` 是计算与交互，`data/*.json` 是数据源，`scripts/build-data.mjs` 负责构建。项目使用 GitHub 仓库保存代码；尚未发布为公开网站。
