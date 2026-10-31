@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { runInNewContext } from 'node:vm';
+import { syncLegacyWidget } from '../scripts/sync-legacy-widget.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = path => readFile(join(root, path), 'utf8');
@@ -63,6 +64,68 @@ test('Battle Machine 5→6 matches the user screenshot under Gold Pass 20%', () 
   const result = core.COC_CORE.calculateSelection(machine, 5, 6, 1, { boost: 20, extraBoost: 'none' });
   assert.equal(result.time, 14 * 3600 + 20 * 60);
   assert.equal(result.costs['Builder Elixir'], 1_200_000);
+});
+
+test('Town Hall 16→17 is present and TH17 stage points to the correct step', () => {
+  const townHall = catalog.items.find(item => item.e === 'Town Hall');
+  assert.deepEqual(Array.from(townHall.l.find(row => row[0] === 17)), [17, 10 * 86400, 16_000_000, 16]);
+  assert.deepEqual({ ...core.COC_CORE.stageUpgradeBounds(townHall, 17) }, { current: 16, target: 17 });
+  assert.deepEqual(Array.from(core.COC_CORE.stageUpgradeRows(townHall, 17), row => row[0]), [17]);
+  assert.deepEqual(Array.from(core.COC_CORE.stageUpgradeRows(townHall, 18), row => row[0]), [18]);
+  const result = core.COC_CORE.calculateSelection(townHall, 16, 17, 1, { boost: 20, extraBoost: 'none' });
+  assert.equal(result.time, 8 * 86400);
+  assert.equal(result.costs.Gold, 12_800_000);
+});
+
+test('Inferno Artillery 1→5 matches the user-provided TH17 reference table', () => {
+  const artillery = catalog.items.find(item => item.e === 'Inferno Artillery');
+  assert.ok(artillery);
+  assert.equal(artillery.i, 'u250');
+  assert.equal(artillery.m, 'from');
+  assert.equal(artillery.maxCopies, 1);
+  assert.equal(artillery.provenance.status, 'user_reference_screenshot');
+  assert.deepEqual(Array.from(artillery.l, row => Array.from(row)), [
+    [1, 6 * 86400, 10_000_000, 17],
+    [2, 7 * 86400, 12_000_000, 17],
+    [3, 8 * 86400, 14_000_000, 17],
+    [4, 10 * 86400, 18_000_000, 17],
+    [5, 0, 0, 17]
+  ]);
+  assert.deepEqual(Array.from(core.COC_CORE.stageUpgradeRows(artillery, 17), row => row[0]), [1, 2, 3, 4]);
+  assert.deepEqual({ ...core.COC_CORE.stageUpgradeBounds(artillery, 17) }, { current: 1, target: 5 });
+  assert.equal(core.COC_CORE.stageUpgradeRows(artillery, 16).length, 0);
+  const full = core.COC_CORE.calculateSelection(artillery, 1, 5, 1, { boost: 0, extraBoost: 'none' });
+  assert.equal(full.time, 31 * 86400);
+  assert.equal(full.costs.Gold, 54_000_000);
+  const goldPass = core.COC_CORE.calculateSelection(artillery, 1, 2, 1, { boost: 20, extraBoost: 'none' });
+  assert.equal(goldPass.time, 4 * 86400 + 19 * 3600);
+  assert.equal(goldPass.costs.Gold, 8_000_000);
+});
+
+test('legacy widget catalog insertion preserves older items', () => {
+  const older = [{ i: 'u1', e: 'Town Hall' }, { i: 'u32', e: 'Inferno Tower' }];
+  const html = `before atob('${Buffer.from(JSON.stringify(older)).toString('base64')}') after`;
+  const artillery = source.items.find(item => item.e === 'Inferno Artillery');
+  const result = syncLegacyWidget(html, artillery);
+  assert.equal(result.originalCount, 2);
+  assert.equal(result.updatedCount, 3);
+  const encoded = result.html.match(/atob\('([^']+)'\)/)[1];
+  const updated = JSON.parse(Buffer.from(encoded, 'base64').toString('utf8'));
+  assert.deepEqual([updated[0], updated[2]], older);
+  assert.deepEqual(updated[1], artillery);
+  assert.throws(() => syncLegacyWidget(result.html, artillery), /already present/);
+});
+
+test('TH17 stage exposes upgradeable items, not TH18-only steps', () => {
+  const items = catalog.items.filter(item => item.v === 'home' && core.COC_CORE.stageUpgradeRows(item, 17).length);
+  assert.ok(items.length >= 80);
+  assert.ok(items.some(item => item.e === 'Town Hall'));
+  assert.ok(items.some(item => item.e === 'Firespitter'));
+  const townHall = items.find(item => item.e === 'Town Hall');
+  assert.ok(core.COC_CORE.stageUpgradeRows(townHall, 17).every(row => row[0] === 17));
+  const grandWarden = items.find(item => item.e === 'Grand Warden');
+  assert.ok(core.COC_CORE.stageUpgradeRows(grandWarden, 17).some(row => row[0] === 70));
+  assert.ok(!core.COC_CORE.stageUpgradeRows(grandWarden, 16).some(row => row[0] === 70));
 });
 
 test('Hammer Jam halves eligible Home Village time and cost', () => {

@@ -18,6 +18,29 @@
     return Math.ceil(seconds);
   }
 
+  function stageUpgradeRows(item, stage) {
+    const max = Math.max(...item.l.map(row => row[0]));
+    const valid = item.l.filter(row => item.m !== 'from' || row[0] < max);
+    if (!stage) return valid;
+    const isHall = (item.v === 'home' && item.e === 'Town Hall') ||
+      (item.v === 'builderBase' && item.e === 'Builder Hall');
+    return valid.filter(row => {
+      if (isHall) return row[0] === stage;
+      if (item.m === 'to') return row[3] === stage;
+      const targetRow = item.l.find(candidate => candidate[0] === row[0] + 1);
+      return (targetRow?.[3] ?? row[3]) === stage;
+    });
+  }
+
+  function stageUpgradeBounds(item, stage) {
+    const rows = stageUpgradeRows(item, stage);
+    if (!rows.length) return null;
+    return {
+      current: item.m === 'to' ? rows[0][0] - 1 : rows[0][0],
+      target: item.m === 'to' ? rows[rows.length - 1][0] : rows[rows.length - 1][0] + 1
+    };
+  }
+
   function calculateSelection(item, current, target, quantity, settings) {
     const rows = item.m === 'to'
       ? item.l.filter(row => row[0] > current && row[0] <= target)
@@ -43,5 +66,5 @@
     return { item, current, target, quantity, baseTime, time, costs };
   }
 
-  global.COC_CORE = { gameRoundedTime, calculateSelection, normalizeExtraBoost, isHammerJamEligible };
+  global.COC_CORE = { gameRoundedTime, calculateSelection, normalizeExtraBoost, isHammerJamEligible, stageUpgradeRows, stageUpgradeBounds };
 })(globalThis);

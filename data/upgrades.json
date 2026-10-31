@@ -1,11 +1,11 @@
 {
   "meta": {
-    "version": "0.1.0",
+    "version": "0.1.1",
     "baselineCheckedAt": "2026-07-21",
     "source": "https://github.com/ClashKingInc/clashy.go/blob/main/static/static_data.json",
     "sourceRevision": "legacy snapshot; upstream commit not recorded",
     "status": "needs_review",
-    "itemCount": 249,
+    "itemCount": 250,
     "knownGaps": ["Diggy 11–15 级", "建筑工人小屋、巨石碑的新超级充能等级"]
   },
   "items": [
@@ -4501,6 +4501,31 @@
           25000000,
           17
         ]
+      ]
+    },
+    {
+      "i": "u250",
+      "n": "地狱火炮",
+      "e": "Inferno Artillery",
+      "v": "home",
+      "c": "building",
+      "r": "Gold",
+      "m": "from",
+      "s": "home_builder",
+      "h": 17,
+      "maxCopies": 1,
+      "o": "17本大本营武器；1级随大本营升级获得，不单独建造",
+      "provenance": {
+        "status": "user_reference_screenshot",
+        "checkedAt": "2026-09-27",
+        "scope": "1–5级的升级费用、时间与大本营要求"
+      },
+      "l": [
+        [1, 518400, 10000000, 17],
+        [2, 604800, 12000000, 17],
+        [3, 691200, 14000000, 17],
+        [4, 864000, 18000000, 17],
+        [5, 0, 0, 17]
       ]
     },
     {

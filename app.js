@@ -9,7 +9,7 @@
   }
   const DATA = catalog.items;
   const CATALOG_META = catalog.meta;
-  const { calculateSelection, normalizeExtraBoost } = window.COC_CORE;
+  const { calculateSelection, normalizeExtraBoost, stageUpgradeRows, stageUpgradeBounds } = window.COC_CORE;
   const correctionsByStep = new Map((CATALOG_META.corrections || []).map(correction => [`${correction.itemId}:${correction.fromLevel}:${correction.toLevel}`, correction]));
   const byId = new Map(DATA.map(item => [item.i, item]));
   const plan = [];
@@ -21,15 +21,17 @@
 
   const $ = id => root.querySelector(`#${id}`);
   const els = {
-    village: $('coc-village'), category: $('coc-category'), search: $('coc-search'), item: $('coc-item'),
+    village: $('coc-village'), hall: $('coc-hall'), category: $('coc-category'), search: $('coc-search'), item: $('coc-item'),
+    th17Shortcut: $('coc-th17-shortcut'),
     current: $('coc-current'), target: $('coc-target'), quantity: $('coc-quantity'), quantityLabel: $('coc-quantity-label'),
     boost: $('coc-boost'), extraBoost: $('coc-extra-boost'), builderHelper: $('coc-builder-helper'), labHelper: $('coc-lab-helper'),
     homeBuilders: $('coc-home-builders'), bbBuilders: $('coc-bb-builders'), add: $('coc-add'),
+    goblinBuilder: $('coc-goblin-builder'), goblinResearcher: $('coc-goblin-researcher'),
     selectedName: $('coc-selected-name'), selectedMeta: $('coc-selected-meta'), selectedBadge: $('coc-selected-badge'), preview: $('coc-preview'),
     totalWork: $('coc-total-work'), baseWork: $('coc-base-work'), calendarTime: $('coc-calendar-time'), finish: $('coc-finish'), finishContext: $('coc-finish-context'),
     lanes: $('coc-lanes'), queueCount: $('coc-queue-count'), costSummary: $('coc-cost-summary'), body: $('coc-plan-body'), dataCount: $('coc-data-count'),
     levelBody: $('coc-level-body'), levelBoostNote: $('coc-level-boost-note'),
-    planName: $('coc-plan-name'), savedPlanSelect: $('coc-saved-plan-select'), savePlan: $('coc-save-plan'), newPlan: $('coc-new-plan'),
+    planName: $('coc-plan-name'), planNote: $('coc-plan-note'), savedPlanSelect: $('coc-saved-plan-select'), savePlan: $('coc-save-plan'), newPlan: $('coc-new-plan'),
     exportPlans: $('coc-export-plans'), importPlans: $('coc-import-plans'), importFile: $('coc-import-file'),
     planStatus: $('coc-plan-status'), savedPlanBody: $('coc-saved-plan-body'), savedPlanCount: $('coc-saved-plan-count')
   };
@@ -63,9 +65,11 @@
   };
   const resName = key => resourceLabels[key] || key.replaceAll('_', ' ');
   const hallLabel = item => `${item.v === 'builderBase' ? 'BH' : 'TH'}${item.h}`;
+  const selectedStage = () => Number(els.hall.value) || 0;
+  const stageLabel = () => `${els.village.value === 'builderBase' ? 'BH' : 'TH'}${selectedStage()}`;
   const maxLevel = item => Math.max(...item.l.map(row => row[0]));
   const minLevel = item => item.m === 'to' ? 0 : Math.min(...item.l.map(row => row[0]));
-  const pluralAllowed = item => ['building', 'trap', 'wall', 'supercharge', 'crafted'].includes(item.c);
+  const pluralAllowed = item => item.maxCopies !== 1 && ['building', 'trap', 'wall', 'supercharge', 'crafted'].includes(item.c);
   const escapeHtml = value => String(value ?? '').replace(/[&<>'"]/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
   const captureSettings = () => ({
     boost: Number(els.boost.value) || 0,
@@ -73,7 +77,9 @@
     builderHelper: Number(els.builderHelper.value) || 0,
     labHelper: Number(els.labHelper.value) || 0,
     homeBuilders: Number(els.homeBuilders.value) || 1,
-    bbBuilders: Number(els.bbBuilders.value) || 1
+    bbBuilders: Number(els.bbBuilders.value) || 1,
+    goblinBuilder: Number(els.goblinBuilder.value) === 1,
+    goblinResearcher: Number(els.goblinResearcher.value) === 1
   });
   const normalizedSettings = settings => ({
     boost: [0, 10, 15, 20].includes(Number(settings?.boost)) ? Number(settings.boost) : 0,
@@ -81,7 +87,9 @@
     builderHelper: Math.max(0, Math.min(8, Math.round(Number(settings?.builderHelper) || 0))),
     labHelper: Math.max(0, Math.min(12, Math.round(Number(settings?.labHelper) || 0))),
     homeBuilders: Math.max(1, Math.min(6, Math.round(Number(settings?.homeBuilders) || 6))),
-    bbBuilders: Math.max(1, Math.min(3, Math.round(Number(settings?.bbBuilders) || 3)))
+    bbBuilders: Math.max(1, Math.min(3, Math.round(Number(settings?.bbBuilders) || 3))),
+    goblinBuilder: Number(settings?.goblinBuilder) === 1,
+    goblinResearcher: Number(settings?.goblinResearcher) === 1
   });
   const applySettings = settings => {
     const safe = normalizedSettings(settings);
@@ -91,8 +99,11 @@
     els.labHelper.value = String(safe.labHelper);
     els.homeBuilders.value = String(safe.homeBuilders);
     els.bbBuilders.value = String(safe.bbBuilders);
+    els.goblinBuilder.value = safe.goblinBuilder ? '1' : '0';
+    els.goblinResearcher.value = safe.goblinResearcher ? '1' : '0';
   };
   const cloneEntries = entries => (entries || []).map(entry => ({ id: entry.id, current: entry.current, target: entry.target, quantity: entry.quantity }));
+  const normalizeNote = value => typeof value === 'string' ? value.slice(0, 1000) : '';
   const normalizeEntries = entries => (entries || []).flatMap(entry => {
     const values = Array.isArray(entry)
       ? { id: entry[0], current: entry[1], target: entry[2], quantity: entry[3] }
@@ -113,8 +124,9 @@
     p: savedPlans.map(saved => ({
       i: saved.id,
       n: saved.name,
+      m: normalizeNote(saved.note),
       e: saved.entries.map(entry => [entry.id, entry.current, entry.target, entry.quantity]),
-      s: [saved.settings.boost, saved.settings.extraBoost, saved.settings.builderHelper, saved.settings.labHelper, saved.settings.homeBuilders, saved.settings.bbBuilders],
+      s: [saved.settings.boost, saved.settings.extraBoost, saved.settings.builderHelper, saved.settings.labHelper, saved.settings.homeBuilders, saved.settings.bbBuilders, Number(saved.settings.goblinBuilder), Number(saved.settings.goblinResearcher)],
       u: saved.updatedAt
     }))
   });
@@ -130,8 +142,9 @@
       return [{
         id,
         name,
+        note: normalizeNote(saved?.m),
         entries,
-        settings: normalizedSettings({ boost: settingsArray[0], extraBoost: settingsArray[1], builderHelper: settingsArray[2], labHelper: settingsArray[3], homeBuilders: settingsArray[4], bbBuilders: settingsArray[5] }),
+        settings: normalizedSettings({ boost: settingsArray[0], extraBoost: settingsArray[1], builderHelper: settingsArray[2], labHelper: settingsArray[3], homeBuilders: settingsArray[4], bbBuilders: settingsArray[5], goblinBuilder: settingsArray[6], goblinResearcher: settingsArray[7] }),
         updatedAt: Number(saved?.u) || Date.now()
       }];
     });
@@ -162,6 +175,8 @@
     if (safe.extraBoost === 'hammerJam50') parts.push('夯木节50%');
     if (safe.builderHelper) parts.push(`建筑助手${safe.builderHelper}级`);
     if (safe.labHelper) parts.push(`实验室助手${safe.labHelper}级`);
+    if (safe.goblinBuilder) parts.push('哥布林工人');
+    if (safe.goblinResearcher) parts.push('哥布林研究员');
     parts.push(`工人 ${safe.homeBuilders}/${safe.bbBuilders}`);
     return parts.join(' · ');
   };
@@ -252,20 +267,18 @@
 
   function renderLevelTable() {
     const item = byId.get(els.item.value);
-    els.levelBoostNote.textContent = reductionNote(item);
+    els.levelBoostNote.textContent = `${selectedStage() ? `${stageLabel()} 阶段 · ` : ''}${reductionNote(item)}`;
     if (!item) {
       els.levelBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">没有可显示的升级等级</td></tr>';
       return;
     }
-    const itemMax = maxLevel(item);
-    const steps = item.l.flatMap(row => {
+    const steps = stageUpgradeRows(item, selectedStage()).map(row => {
       const current = item.m === 'to' ? row[0] - 1 : row[0];
       const target = current + 1;
-      if (item.m === 'from' && current >= itemMax) return [];
       const result = selection(item, current, target, 1);
       const targetRow = item.l.find(candidate => candidate[0] === target);
       const hall = item.m === 'to' ? row[3] : (targetRow?.[3] ?? row[3]);
-      return [{ current, target, result, hall, correction: correctionsByStep.get(`${item.i}:${current}:${target}`) }];
+      return { current, target, result, hall, correction: correctionsByStep.get(`${item.i}:${current}:${target}`) };
     });
     if (!steps.length) {
       els.levelBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">该项目没有可用的升级步骤</td></tr>';
@@ -291,10 +304,26 @@
       .map(key => `<option value="${key}">${categoryLabels[key]}${key === 'all' ? `（${DATA.length}）` : `（${DATA.filter(item => item.c === key).length}）`}</option>`).join('');
   }
 
+  function populateHallOptions() {
+    const village = els.village.value;
+    els.hall.disabled = village === 'all';
+    if (village === 'all') {
+      els.hall.innerHTML = '<option value="0">全部阶段</option>';
+      return;
+    }
+    const max = Math.max(...DATA.filter(item => item.v === village).flatMap(item => item.l.map(row =>
+      ((village === 'home' && item.e === 'Town Hall') || (village === 'builderBase' && item.e === 'Builder Hall') ? row[0] : row[3]))));
+    const prefix = village === 'builderBase' ? 'BH' : 'TH';
+    els.hall.innerHTML = '<option value="0">全部阶段</option>' +
+      Array.from({ length: max }, (_, index) => `<option value="${index + 1}">${prefix}${index + 1}</option>`).join('');
+  }
+
   function filteredItems() {
     const query = els.search.value.trim().toLocaleLowerCase('zh-CN');
+    const stage = selectedStage();
     return DATA.filter(item =>
       (els.village.value === 'all' || item.v === els.village.value) &&
+      (!stage || stageUpgradeRows(item, stage).length > 0) &&
       (els.category.value === 'all' || item.c === els.category.value) &&
       (!query || `${item.n} ${item.e} ${item.o}`.toLocaleLowerCase('zh-CN').includes(query))
     );
@@ -315,12 +344,13 @@
   function populateLevels(item) {
     const min = minLevel(item);
     const max = maxLevel(item);
+    const bounds = stageUpgradeBounds(item, selectedStage());
     const currentOptions = [];
-    for (let level = min; level < max; level++) currentOptions.push(`<option value="${level}">${level === 0 ? '未建造 / 未解锁' : `${level}级`}</option>`);
+    for (let level = min; level < max; level++) currentOptions.push(`<option value="${level}"${level === bounds?.current ? ' selected' : ''}>${level === 0 ? '未建造 / 未解锁' : `${level}级`}</option>`);
     els.current.innerHTML = currentOptions.join('');
-    const current = Number(els.current.value || min);
+    const current = Number(els.current.value);
     const targetOptions = [];
-    for (let level = current + 1; level <= max; level++) targetOptions.push(`<option value="${level}"${level === max ? ' selected' : ''}>${level}级</option>`);
+    for (let level = current + 1; level <= max; level++) targetOptions.push(`<option value="${level}"${level === (bounds?.target ?? max) ? ' selected' : ''}>${level}级</option>`);
     els.target.innerHTML = targetOptions.join('');
   }
 
@@ -351,8 +381,11 @@
     }
     els.add.disabled = false;
     els.selectedName.textContent = item.n;
-    els.selectedMeta.textContent = [item.n !== item.e ? item.e : '', item.o].filter(Boolean).join(' · ') || '升级数据';
-    els.selectedBadge.textContent = `${categoryLabels[item.c]} · ${hallLabel(item)} · 最高${maxLevel(item)}级`;
+    els.selectedMeta.textContent = [item.n !== item.e ? item.e : '', item.o,
+      selectedStage() ? `${stageLabel()} 阶段升级` : ''].filter(Boolean).join(' · ') || '升级数据';
+    const hallBadge = item.e === 'Town Hall' || item.e === 'Builder Hall'
+      ? `最高${item.v === 'builderBase' ? 'BH' : 'TH'}${maxLevel(item)}` : hallLabel(item);
+    els.selectedBadge.textContent = `${categoryLabels[item.c]} · ${selectedStage() ? stageLabel() : hallBadge} · 最高${maxLevel(item)}级`;
     els.quantityLabel.hidden = !pluralAllowed(item);
     els.quantity.value = '1';
     populateLevels(item);
@@ -395,9 +428,9 @@
       for (const [key, value] of Object.entries(result.costs)) addCost(totalCosts, key, value);
     }
     const parallel = {
-      home_builder: builderMakespanWithHelper(streamTasks.home_builder, safeSettings.homeBuilders, safeSettings.builderHelper),
+      home_builder: builderMakespanWithHelper(streamTasks.home_builder, safeSettings.homeBuilders + Number(safeSettings.goblinBuilder), safeSettings.builderHelper),
       bb_builder: makespan(streamTasks.bb_builder, safeSettings.bbBuilders),
-      home_lab: helperAdjustedDuration(makespan(streamTasks.home_lab, 1), safeSettings.labHelper),
+      home_lab: builderMakespanWithHelper(streamTasks.home_lab, 1 + Number(safeSettings.goblinResearcher), safeSettings.labHelper),
       bb_lab: makespan(streamTasks.bb_lab, 1),
       pet: makespan(streamTasks.pet, 1),
       instant: 0
@@ -481,7 +514,7 @@
     const active = savedPlans.find(saved => saved.id === activePlanId);
     if (active) {
       els.planStatus.textContent = currentPlanDirty ? `“${active.name}”有未保存修改` : `当前：${active.name}`;
-    } else if (plan.length || els.planName.value.trim()) {
+    } else if (plan.length || els.planName.value.trim() || els.planNote.value.trim()) {
       els.planStatus.textContent = '当前方案尚未保存';
     } else {
       els.planStatus.textContent = '新建空白方案';
@@ -547,6 +580,7 @@
       savedPlans.push(saved);
     }
     saved.name = name;
+    saved.note = normalizeNote(els.planNote.value);
     saved.entries = cloneEntries(plan);
     saved.settings = captureSettings();
     saved.updatedAt = Date.now();
@@ -564,6 +598,7 @@
     plan.splice(0, plan.length, ...cloneEntries(saved.entries));
     applySettings(saved.settings);
     els.planName.value = saved.name;
+    els.planNote.value = saved.note || '';
     activePlanId = saved.id;
     currentPlanDirty = false;
     updatePreview();
@@ -577,6 +612,7 @@
     if (currentPlanDirty && !window.confirm('当前修改尚未保存，仍要新建空白方案吗？')) return;
     plan.splice(0, plan.length);
     els.planName.value = '';
+    els.planNote.value = '';
     activePlanId = null;
     currentPlanDirty = false;
     renderPlan();
@@ -650,8 +686,10 @@
     if (active) {
       applySettings(active.settings);
       els.planName.value = active.name;
+      els.planNote.value = active.note || '';
     } else {
       els.planName.value = '';
+      els.planNote.value = '';
     }
     currentPlanDirty = false;
     updatePreview();
@@ -660,7 +698,20 @@
     return true;
   }
 
-  els.village.addEventListener('change', () => populateItems());
+  els.village.addEventListener('change', () => { populateHallOptions(); populateItems(); });
+  els.hall.addEventListener('change', () => {
+    const hallId = els.village.value === 'builderBase' ? 'Builder Hall' : 'Town Hall';
+    const hallItem = DATA.find(item => item.e === hallId);
+    populateItems(selectedStage() && els.category.value === 'all' && !els.search.value.trim() ? hallItem?.i : els.item.value);
+  });
+  els.th17Shortcut.addEventListener('click', () => {
+    els.village.value = 'home';
+    els.category.value = 'all';
+    els.search.value = '';
+    populateHallOptions();
+    els.hall.value = '17';
+    populateItems(DATA.find(item => item.e === 'Town Hall')?.i);
+  });
   els.category.addEventListener('change', () => populateItems());
   els.search.addEventListener('input', () => populateItems());
   els.item.addEventListener('change', updateSelection);
@@ -673,6 +724,8 @@
   els.labHelper.addEventListener('change', () => { markPlanDirty(); updatePreview(); renderLevelTable(); renderPlan(); });
   els.homeBuilders.addEventListener('change', () => { markPlanDirty(); renderPlan(); });
   els.bbBuilders.addEventListener('change', () => { markPlanDirty(); renderPlan(); });
+  els.goblinBuilder.addEventListener('change', () => { markPlanDirty(); renderPlan(); });
+  els.goblinResearcher.addEventListener('change', () => { markPlanDirty(); renderPlan(); });
   els.add.addEventListener('click', () => {
     const item = byId.get(els.item.value);
     if (!item || !els.target.value) return;
@@ -686,6 +739,11 @@
     renderPlan();
   });
   els.planName.addEventListener('input', () => {
+    currentPlanDirty = true;
+    renderSavedPlans();
+    updatePlanStatus();
+  });
+  els.planNote.addEventListener('input', () => {
     currentPlanDirty = true;
     renderSavedPlans();
     updatePlanStatus();
@@ -706,6 +764,7 @@
     if (deleteButton) deleteSavedPlan(deleteButton.dataset.deletePlan);
   });
   populateCategories();
+  populateHallOptions();
   els.dataCount.textContent = num(DATA.length);
   root.querySelector('#coc-data-version').textContent = CATALOG_META.version || '未标记';
   document.getElementById('catalog-date').textContent = CATALOG_META.baselineCheckedAt || '未知';

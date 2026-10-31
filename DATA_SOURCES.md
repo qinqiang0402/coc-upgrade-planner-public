@@ -1,6 +1,6 @@
 # 升级数据说明
 
-当前数据版本：`0.1.0`。基础表首次整理时标注的核对日期为 2026-07-21，并不代表此后每条数据都已经复核。
+当前数据版本：`0.1.1`。基础表首次整理时标注的核对日期为 2026-07-21，并不代表此后每条数据都已经复核。
 旧版未记录上游数据的具体提交版本，因而不能精确重现当时的上游快照；以后更新应固定并保存上游提交号。
 
 ## 文件职责
@@ -16,6 +16,10 @@
 
 2026 年 8 月 [官方公告](https://supercell.com/en/games/clashofclans/blog/release-notes/august-update-3/)增加了 Diggy 11–15 级，以及建筑工人小屋、巨石碑的超级充能新等级。当前快照中的 Diggy 最高仅 10 级；新增内容的完整时间、费用和解锁要求尚未核实，因此没有编造数值填入第一版。
 
+大本营 16→17：源文件原已记录目标 17 级、基础升级时间 10 天、费用 16,000,000 金币，解锁条件为 16 本。2026-09-23 对照 [GiBiArena 的逐级表](https://www.gibiarena.com/en/clash-of-clans/upgrades/town-hall)复核，这一条与其标注的 2026-09-01 游戏文件数据一致。但两者都沿用 ClashKing 数据，属于**同源版本对照，不是独立验证或官方逐级数值保证**。[Supercell 的 17 本更新公告](https://supercell.com/en/games/clashofclans/blog/game-updates/the-town-hall-17-update-is-here-2/)确认了 17 本及其新增内容，但没有提供可用于逐项复核的完整时间/费用表。17 本阶段其他项目仍需逐项核对。界面现可选择“TH17”阶段，查看大本营 16→17 及该阶段标记的其他升级。
+
+地狱火炮 1→5：2026-09-27 用户提供的逐级参考表截图列出：1 级费用和时间均为 N/A；1→2 为 10,000,000 金币 / 6 天，2→3 为 12,000,000 / 7 天，3→4 为 14,000,000 / 8 天，4→5 为 18,000,000 / 10 天，所列等级均要求 17 本。1 级作为 17 本武器初始状态，不单独计时或收费。[Clash Ninja 的更新资料](https://www.clash.ninja/blog/town-hall-18-is-here)列出相同的升级费用与时间；[Supercell 的 17 本更新公告](https://supercell.com/en/games/clashofclans/blog/game-updates/the-town-hall-17-update-is-here-2/)确认武器与大本营合并，但未逐级列出数值。另有第三方表将多个等级统一写为 16,000,000 金币，与用户参考表冲突，因此此处以用户指定的参考表为准；游戏内当前实际显示仍优先。此项目数据状态记为 `user_reference_screenshot`，不是官方 API 验证。
+
 ## 更新流程
 
 1. 检查 [Supercell 更新公告](https://supercell.com/en/games/clashofclans/blog/) 与游戏内显示，列出可能受影响的项目和等级。
@@ -24,6 +28,8 @@
 4. 将 `meta.version` 升级，并更新页面的说明与 PWA 缓存版本。尚未核对的新项目继续标为待核对。
 
 ## 额外加速的模拟范围
+
+哥布林工人和哥布林研究员按照 [Supercell 活动说明](https://support.supercell.com/clash-of-clans/en/articles/work-for-hire-event.html)分别提供一个额外的家乡建筑和研究队列，雇佣需支付宝石。此工具只估算并行时间，不指定具体任务由谁承担，也不计算雇佣费用或活动结束时间；持续可用是估算假设。
 
 [Supercell 2025 年夯木节公告](https://supercell.com/en/games/clashofclans/zh-hans/blog/news/%E5%A4%AF%E6%9C%A8-%E8%8A%82-%E5%BC%BA%E5%8A%BF%E5%BC%80%E5%90%AF-%E5%8D%81%E4%B8%80%E6%9C%88-%E8%B5%9B%E5%AD%A3/)明确写明升级时间与费用减半，超级充能和精工防御除外。计算器据此只对家乡的适用、非即时升级按 50% 减时减费。建筑大师基地不套用夯木节，因为该公告没有明确说明覆盖范围。与黄金令牌一起选择时，两项折扣按剩余值相乘作规划估算，具体以相同账号条件下的游戏内显示为准。回归玩家 50% 仍只减少时间。夯木节选项是模拟历史规则，不保证当前或未来活动完全相同。
 

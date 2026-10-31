@@ -23,6 +23,10 @@
     <main>
 <div id="coc-upgrade-calculator">
   <div class="coc-stack">
+    <div class="coc-stage-shortcut">
+      <button class="btn btn-ghost" id="coc-th17-shortcut" type="button">查看 17 本升级数据</button>
+      <span class="text-small text-muted">大本营 16→17 及已收录的 17 本阶段升级</span>
+    </div>
     <div class="viz-controls" aria-label="升级项目筛选">
       <label class="form-label" for="coc-village">村庄
         <select class="form-select" id="coc-village">
@@ -30,6 +34,9 @@
           <option value="home" selected>家乡</option>
           <option value="builderBase">建筑大师基地</option>
         </select>
+      </label>
+      <label class="form-label" for="coc-hall">大本营阶段
+        <select class="form-select" id="coc-hall"></select>
       </label>
       <label class="form-label" for="coc-category">类型
         <select class="form-select" id="coc-category"></select>
@@ -150,6 +157,18 @@
           <option>1</option><option>2</option><option selected>3</option>
         </select>
       </label>
+      <label class="form-label" for="coc-goblin-builder">哥布林工人
+        <select class="form-select" id="coc-goblin-builder">
+          <option value="0">不使用</option><option value="1">使用：额外一个家乡建筑队列</option>
+        </select>
+        <small class="text-muted">限时活动；需要宝石，费用未计入。</small>
+      </label>
+      <label class="form-label" for="coc-goblin-researcher">哥布林研究员
+        <select class="form-select" id="coc-goblin-researcher">
+          <option value="0">不使用</option><option value="1">使用：额外一个家乡研究队列</option>
+        </select>
+        <small class="text-muted">限时活动；需要宝石，费用未计入。</small>
+      </label>
     </div>
 
     <section class="card coc-plan-manager" aria-labelledby="coc-plan-manager-title">
@@ -246,6 +265,12 @@
             <tr><td colspan="6" class="text-center text-muted">从上方选择升级项目并加入方案</td></tr>
           </tbody>
         </table>
+      </div>
+      <div class="coc-plan-note">
+        <label class="form-label" for="coc-plan-note">方案备注
+          <textarea class="form-control" id="coc-plan-note" rows="4" maxlength="1000" placeholder="记录升级顺序、优先目标或这套方案的想法…"></textarea>
+        </label>
+        <div class="text-small text-muted">备注随方案一起保存；修改后请点击“保存当前方案”。</div>
       </div>
     </section>
 

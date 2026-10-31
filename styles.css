@@ -16,7 +16,7 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
   line-height: 1.55;
 }
-button, input, select { font: inherit; }
+button, input, select, textarea { font: inherit; }
 a { color: #d5ef89; }
 a:hover { color: #edffb6; }
 .page-shell { width: min(1220px, calc(100% - 32px)); margin: 0 auto; }
@@ -46,6 +46,8 @@ h1 { margin: 2px 0 0; font-size: clamp(25px, 4vw, 42px); line-height: 1.2; lette
 .data-tag { margin-top: 3px; border-color: #7cbb8d; color: #b7dfae; }
 .site-footer { margin: 35px 0 20px; padding-top: 14px; border-top: 1px solid var(--border); color: #a8bcae; font-size: 12px; }
 .viz-controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(185px, 1fr)); gap: 12px; }
+.coc-stage-shortcut { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
+.coc-stage-shortcut .btn { color: #d9efaa; border-color: #829b54; }
 .form-label { display: flex; flex-direction: column; gap: 6px; color: #c5d1c5; font-size: 13px; font-weight: 600; min-width: 0; }
 .form-control, .form-select {
   width: 100%; min-width: 0; min-height: 42px; padding: 8px 11px; color: #f7faee;
@@ -143,6 +145,13 @@ h1 { margin: 2px 0 0; font-size: clamp(25px, 4vw, 42px); line-height: 1.2; lette
   }
   #coc-upgrade-calculator .coc-plan-name-control {
     flex: 1 1 220px;
+  }
+  #coc-upgrade-calculator .coc-plan-note {
+    margin-top: 16px;
+  }
+  #coc-upgrade-calculator .coc-plan-note textarea {
+    min-height: 100px;
+    resize: vertical;
   }
   #coc-upgrade-calculator .coc-plan-actions,
   #coc-upgrade-calculator .coc-saved-actions {
