@@ -1,13 +1,17 @@
 import { readFile, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const projectRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
+const baselineOnly = process.argv[2] === '--baseline';
+if (baselineOnly && !process.argv[3]) throw new Error('Usage: node scripts/build-data.mjs --baseline OUTPUT_JS');
 const catalog = JSON.parse(await readFile(join(projectRoot, 'data/upgrades.json'), 'utf8'));
 const corrections = JSON.parse(await readFile(join(projectRoot, 'data/corrections.json'), 'utf8'));
 const unlockHallOverrides = JSON.parse(await readFile(join(projectRoot, 'data/unlock-hall-overrides.json'), 'utf8'));
 const th19Preview = JSON.parse(await readFile(join(projectRoot, 'data/th19-preview.json'), 'utf8'));
 const novemberAdjustments = JSON.parse(await readFile(join(projectRoot, 'data/nov-2026-adjustments.json'), 'utf8'));
+const clashperk = JSON.parse(await readFile(join(projectRoot, 'data/clashperk-2026-11-16.json'), 'utf8'));
 
 if (!Array.isArray(catalog.items) || catalog.items.length !== catalog.meta.itemCount) {
   throw new Error('Catalog item count does not match metadata.');
@@ -80,16 +84,37 @@ for (const item of th19Preview.newItems) {
   catalog.items.push(item);
   byId.set(item.i, item);
 }
+for (const entry of baselineOnly ? [] : clashperk.entries) {
+  const item = byId.get(entry.itemId);
+  if (!item || createHash('sha256').update(JSON.stringify(item.l)).digest('hex') !== entry.previousRowsSha256) {
+    throw new Error(`Reviewed source rows changed: ${entry.itemId}`);
+  }
+  item.l = entry.rows;
+  item.previewTargetLevels = [...new Set([...(item.previewTargetLevels || []), ...entry.changedTargets])];
+}
+const artillery = byId.get('u250');
+artillery.n = '地狱火炮（历史参考）';
+artillery.o = '历史参考：官方本次更新称17本武器已合并为单一等级；以下为用户提供的旧版逐级数据，不代表当前可升级。';
+artillery.obsolete = true;
+for (const id of ['u17', 'u24', 'u27', 'u78', 'u74', 'u80', 'u22', 'u7', 'u4', 'u29']) {
+  const item = byId.get(id);
+  if (!item) throw new Error(`Missing removed supercharge: ${id}`);
+  item.n += '（已移除 · 历史参考）';
+  item.o = '官方更新说明称此超级充能已移除；旧等级仅保留用于查看历史方案，不可作为当前升级规划。';
+  item.obsolete = true;
+}
 catalog.meta.itemCount = catalog.items.length;
-catalog.meta.version = '0.1.3-partial';
+catalog.meta.version = '0.1.4-community';
 catalog.meta.knownGaps = [
-  '19本部分兵种、建筑、陷阱和守护者等级仍缺少可核实的时间与费用',
-  '2026年11月旧等级费用与时间调整尚未全面复核',
-  '部分已移除的旧超级充能仍显示，请勿用于当前升级规划',
-  ...catalog.meta.knownGaps
+  '社区数据未逐项游戏内核验，部分守护者费用与官方公告存在差异',
+  '已移除的旧超级充能和历史地狱火炮仅供查看旧方案，不能用于当前升级规划',
+  '17本地狱火炮逐级表为历史参考，当前版本已合并为单一等级',
+  '精工防御、装备、助手等未整体刷新'
 ];
+catalog.meta.communitySnapshot = { source: clashperk.source, fingerprint: clashperk.sourceFingerprint,
+  sha256: clashperk.sha256, retrievedAt: clashperk.retrievedAt, status: clashperk.status };
 catalog.meta.th19Preview = { checkedAt: th19Preview.checkedAt, status: th19Preview.status, source: th19Preview.source, note: th19Preview.note };
 catalog.meta.corrections = corrections;
-const output = `// Generated from upgrades.json, unlock-hall-overrides.json, corrections.json, nov-2026-adjustments.json and th19-preview.json. Run: npm run build:data\nwindow.COC_CATALOG = ${JSON.stringify(catalog)};\n`;
-await writeFile(join(projectRoot, 'data/upgrades.js'), output);
+const output = `// Generated from the catalog and reviewed data overlays. Run: npm run build:data\nwindow.COC_CATALOG = ${JSON.stringify(catalog)};\n`;
+await writeFile(baselineOnly ? process.argv[3] : join(projectRoot, 'data/upgrades.js'), output);
 console.log(`Built catalog: ${catalog.items.length} items, ${corrections.length} correction(s).`);

@@ -343,7 +343,8 @@
     if (result.baseTime !== result.time) comparison.push(`原始 ${duration(result.baseTime)}`);
     const base = comparison.length ? `（${comparison.join(' · ')}）` : '';
     const previewWarning = item.previewTargetLevels?.some(level => level > result.current && level <= result.target) ? '（含第三方资料，待核对）' : '';
-    els.preview.textContent = `${result.current}级 → ${result.target}级：${timeText}${base}；${costText(result.costs)}${previewWarning}`;
+    const historicalWarning = item.obsolete ? '（历史参考，不可用于当前规划）' : '';
+    els.preview.textContent = `${result.current}级 → ${result.target}级：${timeText}${base}；${costText(result.costs)}${previewWarning}${historicalWarning}`;
   }
 
   function summarizePlan(entries, settings) {
@@ -394,7 +395,9 @@
     currentSummary = summary;
     const { results, streams, totalCosts, totalTime, baseTime, calendar } = summary;
     els.totalWork.textContent = totalTime ? duration(totalTime) : '0秒';
-    els.baseWork.textContent = plan.length ? ((boost || extraBoost !== 'none') ? `原始 ${duration(baseTime)} · ${reductionNote()}` : '未使用任何减免') : '尚未加入项目';
+    els.baseWork.textContent = results.some(result => result.item.obsolete)
+      ? '含已移除或历史项目，合计不适用于当前升级规划'
+      : plan.length ? ((boost || extraBoost !== 'none') ? `原始 ${duration(baseTime)} · ${reductionNote()}` : '未使用任何减免') : '尚未加入项目';
     els.calendarTime.textContent = calendar ? duration(calendar) : '0秒';
     if (calendar) {
       const finishDate = new Date(Date.now() + calendar * 1000);
@@ -427,7 +430,7 @@
     } else {
       els.body.innerHTML = results.map((result, index) => `
         <tr>
-          <td class="coc-plan-name">${escapeHtml(result.item.n)}<span class="text-small text-muted">${categoryLabels[result.item.c]} · ${streamLabels[result.item.s]}</span>${result.item.previewTargetLevels?.some(level => level > result.current && level <= result.target) ? '<span class="data-tag">第三方资料 · 待核对</span>' : ''}</td>
+          <td class="coc-plan-name">${escapeHtml(result.item.n)}<span class="text-small text-muted">${categoryLabels[result.item.c]} · ${streamLabels[result.item.s]}</span>${result.item.obsolete ? '<span class="data-tag">历史项目 · 不可用于当前规划</span>' : ''}${result.item.previewTargetLevels?.some(level => level > result.current && level <= result.target) ? '<span class="data-tag">第三方资料 · 待核对</span>' : ''}</td>
           <td class="text-nowrap">${result.current} → ${result.target}</td>
           <td class="text-end">${result.quantity}</td>
           <td class="text-end text-nowrap">${result.time ? duration(result.time) : '即时'}</td>

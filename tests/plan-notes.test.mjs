@@ -71,6 +71,7 @@ test('plan notes save, reload, switch, export and import without breaking older 
   const ui = mountApp({ v: 2, a: 'old-plan', p: [oldPlan] });
   const note = ui.get('coc-plan-note');
   assert.equal(note.value, '', 'older plan without a note opens with an empty note');
+  assert.match(ui.get('coc-base-work').textContent, /历史项目/);
 
   note.value = '先升地狱火炮\n再升级防御';
   ui.get('coc-plan-note').emit('input');
@@ -110,6 +111,15 @@ test('plan notes save, reload, switch, export and import without breaking older 
   ui.get('coc-saved-plan-select').value = imported.i;
   ui.get('coc-saved-plan-select').emit('change');
   assert.equal(note.value, '导入的备注');
+});
+
+test('removed supercharges stay in saved plans with a visible warning', () => {
+  const saved = { v: 2, a: 'plan', p: [{ i: 'plan', n: '旧强化', m: '不要删除',
+    e: [['u17', 0, 1, 1]], s: [0, 'none', 0, 0, 6, 2], u: 1 }] };
+  const ui = mountApp(saved);
+  assert.equal(ui.get('coc-plan-note').value, '不要删除');
+  assert.match(ui.get('coc-base-work').textContent, /历史项目/);
+  assert.match(ui.get('coc-plan-body').innerHTML, /历史项目/);
 });
 
 test('seven builders work in parallel and removed boosts do not affect old plans', async () => {

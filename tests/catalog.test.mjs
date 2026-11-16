@@ -13,6 +13,7 @@ const corrections = JSON.parse(await read('data/corrections.json'));
 const unlockHallOverrides = JSON.parse(await read('data/unlock-hall-overrides.json'));
 const th19Preview = JSON.parse(await read('data/th19-preview.json'));
 const novemberAdjustments = JSON.parse(await read('data/nov-2026-adjustments.json'));
+const clashperk = JSON.parse(await read('data/clashperk-2026-11-16.json'));
 const runtime = {};
 runInNewContext(await read('data/upgrades.js'), { window: runtime });
 const core = {};
@@ -81,9 +82,26 @@ test('generated data is in sync with the editable source files', () => {
       .map(row => item.m === 'from' ? row[0] + 1 : row[0]);
     expected.items.push(copy);
   }
+  for (const entry of clashperk.entries) {
+    const item = expected.items.find(candidate => candidate.i === entry.itemId);
+    item.l = entry.rows;
+    item.previewTargetLevels = [...new Set([...(item.previewTargetLevels || []), ...entry.changedTargets])];
+  }
+  const historical = expected.items.find(item => item.i === 'u250');
+  historical.n = '地狱火炮（历史参考）';
+  historical.o = '历史参考：官方本次更新称17本武器已合并为单一等级；以下为用户提供的旧版逐级数据，不代表当前可升级。';
+  historical.obsolete = true;
+  for (const id of ['u17', 'u24', 'u27', 'u78', 'u74', 'u80', 'u22', 'u7', 'u4', 'u29']) {
+    const item = expected.items.find(candidate => candidate.i === id);
+    item.n += '（已移除 · 历史参考）';
+    item.o = '官方更新说明称此超级充能已移除；旧等级仅保留用于查看历史方案，不可作为当前升级规划。';
+    item.obsolete = true;
+  }
   expected.meta.itemCount = expected.items.length;
-  expected.meta.version = '0.1.3-partial';
-  expected.meta.knownGaps = ['19本部分兵种、建筑、陷阱和守护者等级仍缺少可核实的时间与费用', '2026年11月旧等级费用与时间调整尚未全面复核', '部分已移除的旧超级充能仍显示，请勿用于当前升级规划', ...expected.meta.knownGaps];
+  expected.meta.version = '0.1.4-community';
+  expected.meta.knownGaps = ['社区数据未逐项游戏内核验，部分守护者费用与官方公告存在差异', '已移除的旧超级充能和历史地狱火炮仅供查看旧方案，不能用于当前升级规划', '17本地狱火炮逐级表为历史参考，当前版本已合并为单一等级', '精工防御、装备、助手等未整体刷新'];
+  expected.meta.communitySnapshot = { source: clashperk.source, fingerprint: clashperk.sourceFingerprint,
+    sha256: clashperk.sha256, retrievedAt: clashperk.retrievedAt, status: clashperk.status };
   expected.meta.th19Preview = { checkedAt: th19Preview.checkedAt, status: th19Preview.status, source: th19Preview.source, note: th19Preview.note };
   expected.meta.corrections = corrections;
   assert.deepEqual(JSON.parse(JSON.stringify(catalog)), expected);
@@ -119,6 +137,28 @@ test('TH19 hero, troop, squad and TH18 pet upgrades use the correct target level
   const jelly = catalog.items.find(item => item.e === 'Angry Jelly');
   assert.ok(core.COC_CORE.stageUpgradeRows(jelly, 18).some(row => row[0] === 10));
   assert.equal(core.COC_CORE.stageUpgradeRows(jelly, 19).length, 0);
+});
+
+test('community snapshot supplies missing TH19 upgrades and records prior source conflicts', () => {
+  const ruin = catalog.items.find(item => item.e === 'Ruin Witch');
+  const result = core.COC_CORE.calculateSelection(ruin, 4, 5, 1, { boost: 0 });
+  assert.equal(result.time, 13.5 * 86400);
+  assert.equal(result.costs['Dark Elixir'], 435000);
+  for (const name of ['Thrower', 'Valkyrie', 'Witch', 'Ruin Witch']) {
+    const item = catalog.items.find(candidate => candidate.v === 'home' && candidate.e === name);
+    assert.ok(core.COC_CORE.stageUpgradeRows(item, 19).length, name);
+  }
+  const airBomb = catalog.items.find(item => item.v === 'home' && item.e === 'Air Bomb');
+  assert.deepEqual(Array.from(airBomb.l.at(-1)), [14, 8.5 * 86400, 17_500_000, 19]);
+  const artillery = catalog.items.find(item => item.i === 'u250');
+  assert.match(artillery.n, /历史参考/);
+  assert.match(artillery.o, /单一等级/);
+  assert.equal(artillery.obsolete, true);
+  assert.equal(catalog.items.find(item => item.i === 'u17').obsolete, true);
+  const healers = catalog.items.find(item => item.e === 'Healer Squad');
+  assert.equal(core.COC_CORE.calculateSelection(healers, 2, 3, 1, { boost: 0 }).time, 15 * 86400 + 18 * 3600);
+  assert.equal(clashperk.sourceFingerprint, '0f8af5ebc59dc7b88f884643c1fb8b57928113d6');
+  assert.equal(clashperk.sha256, '6a619361983bc55d587e7b8b7116de8d190f72181079a3f560088b0babe72904');
 });
 
 test('Battle Machine 5→6 matches the user screenshot under Gold Pass 20%', () => {

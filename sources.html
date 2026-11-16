@@ -23,15 +23,15 @@
     </header>
     <section class="card">
       <h2>当前数据状态</h2>
-      <p><strong>19本数据仍不完整：</strong>部分逐级数据来自 <a href="https://keepwatch.gg/" rel="noopener noreferrer">Keepwatch</a> 和 <a href="https://www.clashrecord.com/blog/town-hall-19-max-levels" rel="noopener noreferrer">ClashRecord 上线前逐级表</a>；新增内容范围参照 <a href="https://supercell.com/en/games/clashofclans/blog/release-notes/the-clash-of-titans-update-is-rolling-out/" rel="noopener noreferrer">Supercell 更新说明</a>。第三方数值尚未逐项在游戏内核对，部分新等级仍缺少时间和费用；旧等级调整也未全面同步，游戏内显示优先。</p>
-      <p>基础表来自第三方 <a href="https://github.com/ClashKingInc/clashy.go/blob/main/static/static_data.json" rel="noopener noreferrer">ClashKingInc/clashy.go 的静态数据</a>，此前页面标注的基准核对日期是 2026-07-21。它不是 Supercell 官方 API，也没有逐项核对保证。已知 2026 年 8 月官方新增的 Diggy 11–15 级尚未收录；建筑工人小屋和巨石碑的新增超级充能等级也待核对。因此页面显示的最高等级不一定是当前游戏上限。</p>
+      <p><strong>2026-11-16 社区数据快照：</strong>建筑、陷阱、兵种、法术、英雄、战宠和守护者的可匹配等级已与 <a href="https://assets.clashperk.com/raw.json" rel="noopener noreferrer">ClashPerk 数据</a>对照更新，新增范围参考 <a href="https://supercell.com/en/games/clashofclans/blog/release-notes/the-clash-of-titans-update-is-rolling-out/" rel="noopener noreferrer">Supercell 更新说明</a>。它不是官方 API，尚未逐项游戏内核实；守护者等有来源冲突，精工防御、装备、助手等未整体刷新，请以游戏内为准。</p>
+      <p>旧基础表来自第三方 <a href="https://github.com/ClashKingInc/clashy.go/blob/main/static/static_data.json" rel="noopener noreferrer">ClashKingInc/clashy.go 的静态数据</a>，基准核对日期是 2026-07-21；部分项目尚未随新版快照更新。已移除的部分旧超级充能仍显示，不要用于当前规划。</p>
       <p>Supercell 的 <a href="https://developer.clashofclans.com/" rel="noopener noreferrer">官方 API</a>主要面向玩家与部落资料；官方<a href="https://supercell.com/en/games/clashofclans/blog/release-notes/august-update-3/" rel="noopener noreferrer">更新公告</a>可以帮助发现新内容，但不提供完整实时升级表。</p>
     </section>
     <section class="card">
       <h2>已记录的校正</h2>
       <p>战争机器 5→6：旧数据给出 36 小时，但用户提供的游戏内截图显示，在黄金令牌减时 20% 时，实际为 <strong>14 小时 20 分钟</strong>。第一版暂按 18 小时基础时长计算：18 小时 × 80% = 14 小时 24 分钟，按观察到的 10 分钟显示精度向下取整，得到 14 小时 20 分钟。</p>
       <p><strong>注意：</strong>18 小时基础时长是依据截图反推的暂定值，尚未用无加成的游戏内画面独立证实。因此该行标记为“截图校正 · 基础值推定”。</p>
-      <p>地狱火炮：按用户提供的逐级参考表补入 17 本的 1→5 级。1 级不另计费用或时间；1→2、2→3、3→4、4→5 分别为 1000/1200/1400/1800 万金币和 6/7/8/10 天。<a href="https://www.clash.ninja/blog/town-hall-18-is-here" rel="noopener noreferrer">Clash Ninja 更新资料</a>列出相同数值；其他第三方表存在冲突，详情见 <a href="./DATA_SOURCES.md">数据说明</a>。</p>
+      <p>地狱火炮：保留用户提供的 1→5 级逐级表作为<strong>历史参考</strong>，但官方更新说明称该武器现已合并为单一等级，不代表当前仍可逐级升级。详情见 <a href="./DATA_SOURCES.md">数据说明</a>。</p>
     </section>
     <section class="card">
       <h2>额外加速如何计算</h2>

@@ -3,10 +3,12 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { runInNewContext } from 'node:vm';
 import { syncTh19Preview } from '../scripts/sync-th19-legacy.mjs';
+import { syncCommunitySnapshot } from '../scripts/sync-community-legacy.mjs';
 
 const source = JSON.parse(await readFile(new URL('../data/upgrades.json', import.meta.url)));
 const preview = JSON.parse(await readFile(new URL('../data/th19-preview.json', import.meta.url)));
 const adjustments = JSON.parse(await readFile(new URL('../data/nov-2026-adjustments.json', import.meta.url)));
+const community = JSON.parse(await readFile(new URL('../data/clashperk-2026-11-16.json', import.meta.url)));
 
 test('legacy preview merge preserves existing rows and is safe to repeat', () => {
   const oldItems = structuredClone(source.items);
@@ -31,6 +33,18 @@ test('legacy town hall reductions update once without changing other rows', () =
   assert.equal(syncTh19Preview(first, preview, adjustments).html, first);
   const items = JSON.parse(Buffer.from(first.match(/atob\('([^']+)'\)/)[1], 'base64').toString());
   assert.deepEqual(items.find(item => item.i === 'u2').l.find(row => row[0] === 18), [18, 864000, 20000000, 17]);
+});
+
+test('legacy community snapshot is repeatable and rejects unrelated changes', () => {
+  const fixture = source.items.filter(item => ['u26', 'u250'].includes(item.i));
+  const html = `atob('${Buffer.from(JSON.stringify(fixture)).toString('base64')}')`;
+  const snapshot = { entries: community.entries.filter(entry => entry.itemId === 'u26') };
+  const first = syncCommunitySnapshot(html, snapshot).html;
+  assert.equal(syncCommunitySnapshot(first, snapshot).html, first);
+  const altered = structuredClone(fixture);
+  altered.find(item => item.i === 'u26').l[0][1] += 1;
+  const bad = `atob('${Buffer.from(JSON.stringify(altered)).toString('base64')}')`;
+  assert.throws(() => syncCommunitySnapshot(bad, snapshot), /source rows differ/);
 });
 
 test('legacy TH19 shortcut shows the correct stage and keeps saved notes', { skip: !process.env.COC_LEGACY_WIDGET }, async () => {
