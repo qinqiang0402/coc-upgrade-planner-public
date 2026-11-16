@@ -83,7 +83,7 @@ test('generated data is in sync with the editable source files', () => {
   }
   expected.meta.itemCount = expected.items.length;
   expected.meta.version = '0.1.3-partial';
-  expected.meta.knownGaps = ['19本部分兵种、建筑、陷阱和守护者等级仍缺少可核实的时间与费用', '2026年11月旧等级费用与时间调整尚未全面复核', ...expected.meta.knownGaps];
+  expected.meta.knownGaps = ['19本部分兵种、建筑、陷阱和守护者等级仍缺少可核实的时间与费用', '2026年11月旧等级费用与时间调整尚未全面复核', '部分已移除的旧超级充能仍显示，请勿用于当前升级规划', ...expected.meta.knownGaps];
   expected.meta.th19Preview = { checkedAt: th19Preview.checkedAt, status: th19Preview.status, source: th19Preview.source, note: th19Preview.note };
   expected.meta.corrections = corrections;
   assert.deepEqual(JSON.parse(JSON.stringify(catalog)), expected);

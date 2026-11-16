@@ -85,10 +85,11 @@ catalog.meta.version = '0.1.3-partial';
 catalog.meta.knownGaps = [
   '19本部分兵种、建筑、陷阱和守护者等级仍缺少可核实的时间与费用',
   '2026年11月旧等级费用与时间调整尚未全面复核',
+  '部分已移除的旧超级充能仍显示，请勿用于当前升级规划',
   ...catalog.meta.knownGaps
 ];
 catalog.meta.th19Preview = { checkedAt: th19Preview.checkedAt, status: th19Preview.status, source: th19Preview.source, note: th19Preview.note };
 catalog.meta.corrections = corrections;
-const output = `// Generated from upgrades.json, unlock-hall-overrides.json, corrections.json and th19-preview.json. Run: npm run build:data\nwindow.COC_CATALOG = ${JSON.stringify(catalog)};\n`;
+const output = `// Generated from upgrades.json, unlock-hall-overrides.json, corrections.json, nov-2026-adjustments.json and th19-preview.json. Run: npm run build:data\nwindow.COC_CATALOG = ${JSON.stringify(catalog)};\n`;
 await writeFile(join(projectRoot, 'data/upgrades.js'), output);
 console.log(`Built catalog: ${catalog.items.length} items, ${corrections.length} correction(s).`);
