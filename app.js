@@ -22,11 +22,10 @@
   const $ = id => root.querySelector(`#${id}`);
   const els = {
     village: $('coc-village'), hall: $('coc-hall'), category: $('coc-category'), search: $('coc-search'), item: $('coc-item'),
-    th17Shortcut: $('coc-th17-shortcut'),
+    th17Shortcut: $('coc-th17-shortcut'), th19Shortcut: $('coc-th19-shortcut'),
     current: $('coc-current'), target: $('coc-target'), quantity: $('coc-quantity'), quantityLabel: $('coc-quantity-label'),
-    boost: $('coc-boost'), extraBoost: $('coc-extra-boost'), builderHelper: $('coc-builder-helper'), labHelper: $('coc-lab-helper'),
+    boost: $('coc-boost'), extraBoost: $('coc-extra-boost'),
     homeBuilders: $('coc-home-builders'), bbBuilders: $('coc-bb-builders'), add: $('coc-add'),
-    goblinBuilder: $('coc-goblin-builder'), goblinResearcher: $('coc-goblin-researcher'),
     selectedName: $('coc-selected-name'), selectedMeta: $('coc-selected-meta'), selectedBadge: $('coc-selected-badge'), preview: $('coc-preview'),
     totalWork: $('coc-total-work'), baseWork: $('coc-base-work'), calendarTime: $('coc-calendar-time'), finish: $('coc-finish'), finishContext: $('coc-finish-context'),
     lanes: $('coc-lanes'), queueCount: $('coc-queue-count'), costSummary: $('coc-cost-summary'), body: $('coc-plan-body'), dataCount: $('coc-data-count'),
@@ -74,19 +73,19 @@
   const captureSettings = () => ({
     boost: Number(els.boost.value) || 0,
     extraBoost: els.extraBoost.value,
-    builderHelper: Number(els.builderHelper.value) || 0,
-    labHelper: Number(els.labHelper.value) || 0,
+    builderHelper: 0,
+    labHelper: 0,
     homeBuilders: Number(els.homeBuilders.value) || 1,
     bbBuilders: Number(els.bbBuilders.value) || 1,
-    goblinBuilder: Number(els.goblinBuilder.value) === 1,
-    goblinResearcher: Number(els.goblinResearcher.value) === 1
+    goblinBuilder: false,
+    goblinResearcher: false
   });
   const normalizedSettings = settings => ({
     boost: [0, 10, 15, 20].includes(Number(settings?.boost)) ? Number(settings.boost) : 0,
     extraBoost: normalizeExtraBoost(settings?.extraBoost ?? settings?.returnBoost),
     builderHelper: Math.max(0, Math.min(8, Math.round(Number(settings?.builderHelper) || 0))),
     labHelper: Math.max(0, Math.min(12, Math.round(Number(settings?.labHelper) || 0))),
-    homeBuilders: Math.max(1, Math.min(6, Math.round(Number(settings?.homeBuilders) || 6))),
+    homeBuilders: Math.max(1, Math.min(7, Math.round(Number(settings?.homeBuilders) || 6))),
     bbBuilders: Math.max(1, Math.min(3, Math.round(Number(settings?.bbBuilders) || 3))),
     goblinBuilder: Number(settings?.goblinBuilder) === 1,
     goblinResearcher: Number(settings?.goblinResearcher) === 1
@@ -95,12 +94,8 @@
     const safe = normalizedSettings(settings);
     els.boost.value = String(safe.boost);
     els.extraBoost.value = safe.extraBoost;
-    els.builderHelper.value = String(safe.builderHelper);
-    els.labHelper.value = String(safe.labHelper);
     els.homeBuilders.value = String(safe.homeBuilders);
     els.bbBuilders.value = String(safe.bbBuilders);
-    els.goblinBuilder.value = safe.goblinBuilder ? '1' : '0';
-    els.goblinResearcher.value = safe.goblinResearcher ? '1' : '0';
   };
   const cloneEntries = entries => (entries || []).map(entry => ({ id: entry.id, current: entry.current, target: entry.target, quantity: entry.quantity }));
   const normalizeNote = value => typeof value === 'string' ? value.slice(0, 1000) : '';
@@ -173,36 +168,8 @@
     if (safe.boost) parts.push(`令牌${safe.boost}%`);
     if (safe.extraBoost === 'returning50') parts.push('回归50%');
     if (safe.extraBoost === 'hammerJam50') parts.push('夯木节50%');
-    if (safe.builderHelper) parts.push(`建筑助手${safe.builderHelper}级`);
-    if (safe.labHelper) parts.push(`实验室助手${safe.labHelper}级`);
-    if (safe.goblinBuilder) parts.push('哥布林工人');
-    if (safe.goblinResearcher) parts.push('哥布林研究员');
     parts.push(`工人 ${safe.homeBuilders}/${safe.bbBuilders}`);
     return parts.join(' · ');
-  };
-
-  const helperLevelForItem = (item, settings = captureSettings()) => {
-    if (item?.s === 'home_builder') return settings.builderHelper || 0;
-    if (item?.s === 'home_lab') return settings.labHelper || 0;
-    return 0;
-  };
-
-  const helperAdjustedDuration = (seconds, level) => {
-    let remaining = Math.max(0, seconds || 0);
-    level = Math.max(0, Math.round(level || 0));
-    if (!remaining || !level) return remaining;
-    let elapsed = 0;
-    const boostedHourWork = (level + 1) * 3600;
-    const cooldownWork = 22 * 3600;
-    while (remaining > 0) {
-      if (remaining <= boostedHourWork) return elapsed + remaining / (level + 1);
-      remaining -= boostedHourWork;
-      elapsed += 3600;
-      if (remaining <= cooldownWork) return elapsed + remaining;
-      remaining -= cooldownWork;
-      elapsed += cooldownWork;
-    }
-    return elapsed;
   };
 
   const scheduleLoads = (tasks, workers) => {
@@ -218,35 +185,12 @@
 
   const makespan = (tasks, workers) => Math.max(0, ...scheduleLoads(tasks, workers));
 
-  const builderMakespanWithHelper = (tasks, workers, level) => {
-    const loads = scheduleLoads(tasks, workers);
-    level = Math.max(0, Math.round(level || 0));
-    if (!loads.length || !level) return Math.max(0, ...loads);
-    let elapsed = 0;
-    while (Math.max(...loads) > 0) {
-      let boosted = 0;
-      for (let index = 1; index < loads.length; index++) if (loads[index] > loads[boosted]) boosted = index;
-      const boostSpeeds = loads.map((_, index) => index === boosted ? level + 1 : 1);
-      const finishWithinBoost = Math.max(...loads.map((load, index) => load / boostSpeeds[index]));
-      if (finishWithinBoost <= 3600) return elapsed + finishWithinBoost;
-      for (let index = 0; index < loads.length; index++) loads[index] = Math.max(0, loads[index] - boostSpeeds[index] * 3600);
-      elapsed += 3600;
-      const remainingMax = Math.max(...loads);
-      if (remainingMax <= 22 * 3600) return elapsed + remainingMax;
-      for (let index = 0; index < loads.length; index++) loads[index] = Math.max(0, loads[index] - 22 * 3600);
-      elapsed += 22 * 3600;
-    }
-    return elapsed;
-  };
-
   const reductionNote = (item, settings = captureSettings()) => {
     const notes = [];
-    const { boost, extraBoost, builderHelper, labHelper } = normalizedSettings(settings);
+    const { boost, extraBoost } = normalizedSettings(settings);
     if (boost) notes.push(`${boost}% 黄金令牌`);
     if (extraBoost === 'returning50') notes.push('50% 回归加速（仅时间）');
     if (extraBoost === 'hammerJam50') notes.push(!item ? '50% 夯木节（仅适用项目）' : window.COC_CORE.isHammerJamEligible(item) ? '50% 夯木节（时间与费用）' : '夯木节不适用于此项目');
-    if (builderHelper && (!item || item.s === 'home_builder')) notes.push(`建筑助手${builderHelper}级`);
-    if (labHelper && (!item || item.s === 'home_lab')) notes.push(`实验室助手${labHelper}级`);
     return notes.length ? `已应用 ${notes.join(' · ')}` : '原始数据';
   };
 
@@ -284,15 +228,12 @@
       els.levelBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">该项目没有可用的升级步骤</td></tr>';
       return;
     }
-    const helperLevel = helperLevelForItem(item);
     els.levelBody.innerHTML = steps.map(({ current, target, result, hall, correction }) => {
-      const helperTime = helperAdjustedDuration(result.time, helperLevel);
-      const helperContext = helperLevel && helperTime < result.time ? `<div class="text-small text-muted">原计时 ${duration(result.time)}</div>` : '';
       return `
       <tr>
         <td class="text-nowrap">${current === 0 ? '未解锁' : `${current}级`} → ${target}级</td>
         <td class="text-nowrap">${item.v === 'builderBase' ? 'BH' : 'TH'}${hall}</td>
-        <td class="text-end text-nowrap">${result.time ? duration(helperTime) : '即时完成'}${helperContext}${correction ? '<div class="data-tag" title="来自游戏内截图；无加成基础时间仍需单独确认">截图校正 · 基础值推定</div>' : ''}</td>
+        <td class="text-end text-nowrap">${result.time ? duration(result.time) : '即时完成'}${item.previewTargetLevels?.includes(target) ? '<div class="data-tag">上线前资料 · 待核对</div>' : ''}${correction ? '<div class="data-tag" title="来自游戏内截图；无加成基础时间仍需单独确认">截图校正 · 基础值推定</div>' : ''}</td>
         <td class="text-end"><span class="coc-resource-list">${costText(result.costs)}</span></td>
       </tr>`;
     }).join('');
@@ -381,11 +322,11 @@
     }
     els.add.disabled = false;
     els.selectedName.textContent = item.n;
-    els.selectedMeta.textContent = [item.n !== item.e ? item.e : '', item.o,
+    els.selectedMeta.textContent = [item.n !== item.e ? item.e : '', item.o, item.previewTargetLevels?.length ? '部分等级为上线前资料，待游戏内核对' : '',
       selectedStage() ? `${stageLabel()} 阶段升级` : ''].filter(Boolean).join(' · ') || '升级数据';
     const hallBadge = item.e === 'Town Hall' || item.e === 'Builder Hall'
-      ? `最高${item.v === 'builderBase' ? 'BH' : 'TH'}${maxLevel(item)}` : hallLabel(item);
-    els.selectedBadge.textContent = `${categoryLabels[item.c]} · ${selectedStage() ? stageLabel() : hallBadge} · 最高${maxLevel(item)}级`;
+      ? `已收录至${item.v === 'builderBase' ? 'BH' : 'TH'}${maxLevel(item)}` : hallLabel(item);
+    els.selectedBadge.textContent = `${categoryLabels[item.c]} · ${selectedStage() ? stageLabel() : hallBadge} · 已收录至${maxLevel(item)}级`;
     els.quantityLabel.hidden = !pluralAllowed(item);
     els.quantity.value = '1';
     populateLevels(item);
@@ -397,14 +338,12 @@
     const item = byId.get(els.item.value);
     if (!item || !els.target.value) return;
     const result = selection(item, Number(els.current.value), Number(els.target.value), Number(els.quantity.value));
-    const helperLevel = helperLevelForItem(item);
-    const helperTime = result.quantity === 1 ? helperAdjustedDuration(result.time, helperLevel) : result.time;
-    const timeText = result.time ? duration(helperTime) : '即时完成';
+    const timeText = result.time ? duration(result.time) : '即时完成';
     const comparison = [];
-    if (helperLevel && helperTime < result.time) comparison.push(`助手前 ${duration(result.time)}`);
     if (result.baseTime !== result.time) comparison.push(`原始 ${duration(result.baseTime)}`);
     const base = comparison.length ? `（${comparison.join(' · ')}）` : '';
-    els.preview.textContent = `${result.current}级 → ${result.target}级：${timeText}${base}；${costText(result.costs)}`;
+    const previewWarning = item.previewTargetLevels?.some(level => level > result.current && level <= result.target) ? '（含上线前资料，待核对）' : '';
+    els.preview.textContent = `${result.current}级 → ${result.target}级：${timeText}${base}；${costText(result.costs)}${previewWarning}`;
   }
 
   function summarizePlan(entries, settings) {
@@ -428,9 +367,9 @@
       for (const [key, value] of Object.entries(result.costs)) addCost(totalCosts, key, value);
     }
     const parallel = {
-      home_builder: builderMakespanWithHelper(streamTasks.home_builder, safeSettings.homeBuilders + Number(safeSettings.goblinBuilder), safeSettings.builderHelper),
+      home_builder: makespan(streamTasks.home_builder, safeSettings.homeBuilders),
       bb_builder: makespan(streamTasks.bb_builder, safeSettings.bbBuilders),
-      home_lab: builderMakespanWithHelper(streamTasks.home_lab, 1 + Number(safeSettings.goblinResearcher), safeSettings.labHelper),
+      home_lab: makespan(streamTasks.home_lab, 1),
       bb_lab: makespan(streamTasks.bb_lab, 1),
       pet: makespan(streamTasks.pet, 1),
       instant: 0
@@ -450,12 +389,12 @@
 
   function renderPlan() {
     const settings = captureSettings();
-    const { boost, extraBoost, builderHelper, labHelper } = settings;
+    const { boost, extraBoost } = settings;
     const summary = summarizePlan(plan, settings);
     currentSummary = summary;
     const { results, streams, totalCosts, totalTime, baseTime, calendar } = summary;
     els.totalWork.textContent = totalTime ? duration(totalTime) : '0秒';
-    els.baseWork.textContent = plan.length ? ((boost || extraBoost !== 'none' || builderHelper || labHelper) ? `原始 ${duration(baseTime)} · ${reductionNote()}` : '未使用任何减免') : '尚未加入项目';
+    els.baseWork.textContent = plan.length ? ((boost || extraBoost !== 'none') ? `原始 ${duration(baseTime)} · ${reductionNote()}` : '未使用任何减免') : '尚未加入项目';
     els.calendarTime.textContent = calendar ? duration(calendar) : '0秒';
     if (calendar) {
       const finishDate = new Date(Date.now() + calendar * 1000);
@@ -488,7 +427,7 @@
     } else {
       els.body.innerHTML = results.map((result, index) => `
         <tr>
-          <td class="coc-plan-name">${escapeHtml(result.item.n)}<span class="text-small text-muted">${categoryLabels[result.item.c]} · ${streamLabels[result.item.s]}</span></td>
+          <td class="coc-plan-name">${escapeHtml(result.item.n)}<span class="text-small text-muted">${categoryLabels[result.item.c]} · ${streamLabels[result.item.s]}</span>${result.item.previewTargetLevels?.some(level => level > result.current && level <= result.target) ? '<span class="data-tag">上线前资料 · 待核对</span>' : ''}</td>
           <td class="text-nowrap">${result.current} → ${result.target}</td>
           <td class="text-end">${result.quantity}</td>
           <td class="text-end text-nowrap">${result.time ? duration(result.time) : '即时'}</td>
@@ -712,6 +651,14 @@
     els.hall.value = '17';
     populateItems(DATA.find(item => item.e === 'Town Hall')?.i);
   });
+  els.th19Shortcut.addEventListener('click', () => {
+    els.village.value = 'home';
+    els.category.value = 'all';
+    els.search.value = '';
+    populateHallOptions();
+    els.hall.value = '19';
+    populateItems(DATA.find(item => item.e === 'Town Hall')?.i);
+  });
   els.category.addEventListener('change', () => populateItems());
   els.search.addEventListener('input', () => populateItems());
   els.item.addEventListener('change', updateSelection);
@@ -720,12 +667,8 @@
   els.quantity.addEventListener('input', updatePreview);
   els.boost.addEventListener('change', () => { markPlanDirty(); updatePreview(); renderLevelTable(); renderPlan(); });
   els.extraBoost.addEventListener('change', () => { markPlanDirty(); updatePreview(); renderLevelTable(); renderPlan(); });
-  els.builderHelper.addEventListener('change', () => { markPlanDirty(); updatePreview(); renderLevelTable(); renderPlan(); });
-  els.labHelper.addEventListener('change', () => { markPlanDirty(); updatePreview(); renderLevelTable(); renderPlan(); });
   els.homeBuilders.addEventListener('change', () => { markPlanDirty(); renderPlan(); });
   els.bbBuilders.addEventListener('change', () => { markPlanDirty(); renderPlan(); });
-  els.goblinBuilder.addEventListener('change', () => { markPlanDirty(); renderPlan(); });
-  els.goblinResearcher.addEventListener('change', () => { markPlanDirty(); renderPlan(); });
   els.add.addEventListener('click', () => {
     const item = byId.get(els.item.value);
     if (!item || !els.target.value) return;

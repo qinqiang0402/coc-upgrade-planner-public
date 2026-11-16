@@ -11,6 +11,7 @@ const read = path => readFile(join(root, path), 'utf8');
 const source = JSON.parse(await read('data/upgrades.json'));
 const corrections = JSON.parse(await read('data/corrections.json'));
 const unlockHallOverrides = JSON.parse(await read('data/unlock-hall-overrides.json'));
+const th19Preview = JSON.parse(await read('data/th19-preview.json'));
 const runtime = {};
 runInNewContext(await read('data/upgrades.js'), { window: runtime });
 const core = {};
@@ -18,7 +19,7 @@ runInNewContext(await read('core.js'), core);
 const catalog = runtime.COC_CATALOG;
 
 test('catalog covers the recorded item count without duplicate IDs', () => {
-  assert.equal(catalog.items.length, source.meta.itemCount);
+  assert.equal(catalog.items.length, source.meta.itemCount + th19Preview.newItems.length);
   assert.equal(new Set(catalog.items.map(item => item.i)).size, catalog.items.length);
 });
 
@@ -54,8 +55,39 @@ test('generated data is in sync with the editable source files', () => {
   for (const correction of corrections) {
     expected.items.find(item => item.i === correction.itemId).l.find(row => row[0] === correction.fromLevel)[1] = correction.newValue;
   }
+  for (const addition of th19Preview.appendLevels) {
+    const item = expected.items.find(candidate => candidate.i === addition.itemId);
+    item.l.push(...addition.rows);
+    item.previewTargetLevels = addition.rows.map(row => row[0]);
+  }
+  for (const item of th19Preview.newItems) {
+    const copy = structuredClone(item);
+    copy.previewTargetLevels = item.l.filter((_, index) => item.m !== 'from' || index < item.l.length - 1)
+      .map(row => item.m === 'from' ? row[0] + 1 : row[0]);
+    expected.items.push(copy);
+  }
+  expected.meta.itemCount = expected.items.length;
+  expected.meta.version = '0.1.2-preview';
+  expected.meta.knownGaps = ['19本多数建筑、英雄、兵种、小队及其他新等级尚未收录', '2026年11月旧等级费用与时间调整尚未全面复核', ...expected.meta.knownGaps];
+  expected.meta.th19Preview = { checkedAt: th19Preview.checkedAt, status: th19Preview.status, source: th19Preview.source, note: th19Preview.note };
   expected.meta.corrections = corrections;
   assert.deepEqual(JSON.parse(JSON.stringify(catalog)), expected);
+});
+
+test('TH19 preview steps are selectable and labeled without inventing missing levels', () => {
+  const hall = catalog.items.find(item => item.e === 'Town Hall');
+  assert.deepEqual(Array.from(hall.l.find(row => row[0] === 19)), [19, 13 * 86400, 27_000_000, 18]);
+  assert.deepEqual({ ...core.COC_CORE.stageUpgradeBounds(hall, 19) }, { current: 18, target: 19 });
+  assert.ok(hall.previewTargetLevels.includes(19));
+  const spiky = catalog.items.find(item => item.e === 'Spiky Tower');
+  assert.deepEqual(Array.from(spiky.l, row => Array.from(row)), [[1, 15 * 86400, 500_000, 19], [2, 15.5 * 86400, 510_000, 19]]);
+  const spell = catalog.items.find(item => item.e === 'Heroic Spell');
+  assert.deepEqual(Array.from(core.COC_CORE.stageUpgradeRows(spell, 19), row => row[0]), [3]);
+  assert.deepEqual({ ...core.COC_CORE.stageUpgradeBounds(spell, 19) }, { current: 3, target: 4 });
+  const result = core.COC_CORE.calculateSelection(spell, 3, 4, 1, { boost: 20, extraBoost: 'none' });
+  assert.equal(result.costs.Elixir, 25_600_000);
+  assert.equal(result.time, 12 * 86400 + 9 * 3600);
+  assert.equal(catalog.meta.th19Preview.status, 'pre_release_reference_not_verified_in_game');
 });
 
 test('Battle Machine 5→6 matches the user screenshot under Gold Pass 20%', () => {

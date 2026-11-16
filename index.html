@@ -17,7 +17,7 @@
       <p>逐级核算时间与资源，保存方案，再比较哪条升级路线更合适。</p>
     </header>
     <section class="data-banner" aria-label="数据状态">
-      <div><span class="status-pill">第一版 · 数据待复核</span><strong>升级数值来自第三方快照，游戏内显示优先</strong><p>基准数据标注核对于 <span id="catalog-date">2026-07-21</span>。已知未收录：<span id="catalog-gaps">2026 年 8 月新增等级</span>。请勿将当前最高等级视为游戏内上限。</p></div>
+      <div><span class="status-pill">19本 · 部分预告数据</span><strong>19本数值来自第三方上线前资料，尚未经游戏内核对</strong><p>基准数据标注核对于 <span id="catalog-date">2026-07-21</span>。<strong>本次更新还调整了旧等级费用与时间，旧数据可能不准确。</strong>已知未收录：<span id="catalog-gaps">19本多数新增等级</span>。游戏内显示优先。</p></div>
       <a href="./sources.html">查看数据来源与更新规则 →</a>
     </section>
     <main>
@@ -25,7 +25,8 @@
   <div class="coc-stack">
     <div class="coc-stage-shortcut">
       <button class="btn btn-ghost" id="coc-th17-shortcut" type="button">查看 17 本升级数据</button>
-      <span class="text-small text-muted">大本营 16→17 及已收录的 17 本阶段升级</span>
+      <button class="btn btn-ghost" id="coc-th19-shortcut" type="button">查看 19 本升级数据</button>
+      <span class="text-small text-muted">19本仅收录部分预告数据，待游戏内核对</span>
     </div>
     <div class="viz-controls" aria-label="升级项目筛选">
       <label class="form-label" for="coc-village">村庄
@@ -117,57 +118,15 @@
         </select>
         <small class="text-muted">夯木节按官方 2025 年活动规则模拟：仅家乡，不含超级充能和精工防御；与黄金令牌叠加为估算。</small>
       </label>
-      <label class="form-label" for="coc-builder-helper">建筑助手（学徒）
-        <select class="form-select" id="coc-builder-helper">
-          <option value="0">未启用</option>
-          <option value="1">1级 · 每次节省1小时</option>
-          <option value="2">2级 · 每次节省2小时</option>
-          <option value="3">3级 · 每次节省3小时</option>
-          <option value="4">4级 · 每次节省4小时</option>
-          <option value="5">5级 · 每次节省5小时</option>
-          <option value="6">6级 · 每次节省6小时</option>
-          <option value="7">7级 · 每次节省7小时</option>
-          <option value="8">8级 · 每次节省8小时</option>
-        </select>
-      </label>
-      <label class="form-label" for="coc-lab-helper">实验室助手
-        <select class="form-select" id="coc-lab-helper">
-          <option value="0">未启用</option>
-          <option value="1">1级 · 每次节省1小时</option>
-          <option value="2">2级 · 每次节省2小时</option>
-          <option value="3">3级 · 每次节省3小时</option>
-          <option value="4">4级 · 每次节省4小时</option>
-          <option value="5">5级 · 每次节省5小时</option>
-          <option value="6">6级 · 每次节省6小时</option>
-          <option value="7">7级 · 每次节省7小时</option>
-          <option value="8">8级 · 每次节省8小时</option>
-          <option value="9">9级 · 每次节省9小时</option>
-          <option value="10">10级 · 每次节省10小时</option>
-          <option value="11">11级 · 每次节省11小时</option>
-          <option value="12">12级 · 每次节省12小时</option>
-        </select>
-      </label>
       <label class="form-label" for="coc-home-builders">家乡建筑工人
         <select class="form-select" id="coc-home-builders">
-          <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option selected>6</option>
+          <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option selected>6</option><option>7</option>
         </select>
       </label>
       <label class="form-label" for="coc-bb-builders">建筑大师基地工人
         <select class="form-select" id="coc-bb-builders">
           <option>1</option><option>2</option><option selected>3</option>
         </select>
-      </label>
-      <label class="form-label" for="coc-goblin-builder">哥布林工人
-        <select class="form-select" id="coc-goblin-builder">
-          <option value="0">不使用</option><option value="1">使用：额外一个家乡建筑队列</option>
-        </select>
-        <small class="text-muted">限时活动；需要宝石，费用未计入。</small>
-      </label>
-      <label class="form-label" for="coc-goblin-researcher">哥布林研究员
-        <select class="form-select" id="coc-goblin-researcher">
-          <option value="0">不使用</option><option value="1">使用：额外一个家乡研究队列</option>
-        </select>
-        <small class="text-muted">限时活动；需要宝石，费用未计入。</small>
       </label>
     </div>
 
@@ -207,7 +166,7 @@
       <div class="card viz-stat">
         <div class="text-muted">理想并行时间</div>
         <div class="viz-stat-value" id="coc-calendar-time">0秒</div>
-        <div class="text-small">按工人数量及助手设置持续满负荷估算</div>
+        <div class="text-small">按工人数量持续满负荷估算</div>
       </div>
       <div class="card viz-stat">
         <div class="text-muted">预计完成</div>
@@ -275,7 +234,7 @@
     </section>
 
     <div class="text-small text-muted coc-notes">
-      当前载入 <span id="coc-data-count">0</span> 项，数据版本 <span id="coc-data-version">—</span>。未逐项复核的时间和费用仅供规划；游戏内实际显示优先。额外加速仅用于手动模拟，不表示活动当前生效；未列出的活动不会自动套用。助手按已就绪且持续使用估算。方案保存在当前浏览器；换设备或清理浏览器数据前，请先使用“导出备份”。
+      当前载入 <span id="coc-data-count">0</span> 项，数据版本 <span id="coc-data-version">—</span>。未逐项复核的时间和费用仅供规划；游戏内实际显示优先。额外加速仅用于手动模拟，不表示活动当前生效；未列出的活动不会自动套用。方案保存在当前浏览器；换设备或清理浏览器数据前，请先使用“导出备份”。
     </div>
   </div>
 </div>

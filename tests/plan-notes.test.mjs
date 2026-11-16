@@ -112,30 +112,24 @@ test('plan notes save, reload, switch, export and import without breaking older 
   assert.equal(note.value, '导入的备注');
 });
 
-test('goblin workers add separate home queues and survive plan save and reload', async () => {
-  const plan = (entries) => ({ v: 2, a: 'plan', p: [{
-    i: 'plan', n: '测试', e: entries, s: [0, 'none', 0, 0, 1, 1], u: 1
+test('seven builders work in parallel and removed boosts do not affect old plans', async () => {
+  const plan = (entries, builders = 6) => ({ v: 2, a: 'plan', p: [{
+    i: 'plan', n: '测试', m: '保留这条备注', e: entries, s: [0, 'none', 8, 12, builders, 1, 1, 1], u: 1
   }] });
-  const builders = mountApp(plan([['u35', 0, 1, 1], ['u31', 0, 1, 1]]));
-  assert.equal(builders.get('coc-calendar-time').textContent, '14小时');
-  builders.get('coc-goblin-builder').value = '1';
-  builders.get('coc-goblin-builder').emit('change');
-  assert.equal(builders.get('coc-calendar-time').textContent, '8小时');
+  const builders = mountApp(plan([['u35', 0, 1, 7]]));
+  assert.equal(builders.get('coc-calendar-time').textContent, '12小时');
+  assert.equal(builders.get('coc-plan-note').value, '保留这条备注');
+  builders.get('coc-home-builders').value = '7';
+  builders.get('coc-home-builders').emit('change');
+  assert.equal(builders.get('coc-calendar-time').textContent, '6小时');
   builders.get('coc-save-plan').emit('click');
   const saved = JSON.parse(builders.store.get('coc-upgrade-calculator-plans-v1'));
-  assert.equal(saved.p[0].s[6], 1);
-  assert.equal(saved.p[0].s[7], 0);
-  assert.equal(mountApp(saved).get('coc-goblin-builder').value, '1');
+  assert.equal(saved.p[0].s[4], 7);
+  assert.equal(mountApp(saved).get('coc-home-builders').value, '7');
+  assert.equal(mountApp(saved).get('coc-plan-note').value, '保留这条备注');
   builders.get('coc-export-plans').emit('click');
-  assert.equal(JSON.parse(await builders.exported().text()).p[0].s[6], 1);
+  assert.equal(JSON.parse(await builders.exported().text()).p[0].s[4], 7);
 
   const lab = mountApp(plan([['u171', 1, 2, 1], ['u165', 1, 2, 1]]));
   assert.equal(lab.get('coc-calendar-time').textContent, '1天18小时');
-  lab.get('coc-goblin-researcher').value = '1';
-  lab.get('coc-goblin-researcher').emit('change');
-  assert.equal(lab.get('coc-calendar-time').textContent, '1天');
-  lab.get('coc-save-plan').emit('click');
-  const labSaved = JSON.parse(lab.store.get('coc-upgrade-calculator-plans-v1'));
-  assert.equal(labSaved.p[0].s[7], 1);
-  assert.equal(mountApp(labSaved).get('coc-goblin-researcher').value, '1');
 });
