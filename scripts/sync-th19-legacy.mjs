@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // Only merge the reviewed preview rows; the legacy widget has its own older catalog.
-export function syncTh19Preview(html, preview) {
+export function syncTh19Preview(html, preview, adjustments = { rows: [] }) {
   const matches = [...html.matchAll(/atob\('([^']+)'\)/g)];
   if (matches.length !== 1) throw new Error('Expected one embedded legacy catalog.');
   const [token, encoded] = matches[0];
@@ -11,19 +11,44 @@ export function syncTh19Preview(html, preview) {
   if (!Array.isArray(items)) throw new Error('Invalid embedded catalog.');
   const byId = new Map(items.map(item => [item.i, item]));
   if (byId.size !== items.length) throw new Error('Duplicate legacy IDs.');
+  for (const adjustment of adjustments.rows) {
+    const item = byId.get(adjustment.itemId);
+    const row = item?.l.find(candidate => candidate[0] === adjustment.level);
+    if (item?.m !== 'to' || !row) throw new Error(`Missing adjustment level: ${adjustment.itemId}`);
+    const current = [row[1], row[2]];
+    if (JSON.stringify(current) !== JSON.stringify(adjustment.old) &&
+        JSON.stringify(current) !== JSON.stringify(adjustment.new)) {
+      throw new Error(`Conflicting adjustment: ${adjustment.itemId} ${adjustment.level}`);
+    }
+    [row[1], row[2]] = adjustment.new;
+    item.previewTargetLevels = [...new Set([...(item.previewTargetLevels || []), adjustment.level])];
+  }
   for (const addition of preview.appendLevels) {
     const item = byId.get(addition.itemId);
-    if (!item || item.m !== 'to') throw new Error(`Unsupported preview item: ${addition.itemId}`);
+    if (!item || !['to', 'from'].includes(item.m)) throw new Error(`Unsupported preview item: ${addition.itemId}`);
     for (const row of addition.rows) {
       const existing = item.l.find(candidate => candidate[0] === row[0]);
       if (existing) {
-        if (JSON.stringify(existing) !== JSON.stringify(row)) throw new Error(`Conflicting preview level: ${addition.itemId} ${row[0]}`);
+        if (item.m === 'to' && JSON.stringify(existing) !== JSON.stringify(row)) throw new Error(`Conflicting preview level: ${addition.itemId} ${row[0]}`);
+        if (item.m === 'from') {
+          const previous = item.l.find(candidate => candidate[0] === row[0] - 1);
+          if (!previous || previous[1] !== row[1] || previous[2] !== row[2] || existing[3] !== row[3]) {
+            throw new Error(`Conflicting preview level: ${addition.itemId} ${row[0]}`);
+          }
+        }
       } else {
         if (row[0] !== item.l.at(-1)[0] + 1) throw new Error(`Missing prior level: ${addition.itemId}`);
-        item.l.push(row);
+        if (item.m === 'to') item.l.push(row);
+        else {
+          const tail = item.l.at(-1);
+          if (tail[1] !== 0 || tail[2] !== 0) throw new Error(`Expected terminal row: ${addition.itemId}`);
+          tail[1] = row[1];
+          tail[2] = row[2];
+          item.l.push([row[0], 0, 0, row[3]]);
+        }
       }
     }
-    item.previewTargetLevels = addition.rows.map(row => row[0]);
+    item.previewTargetLevels = [...new Set([...(item.previewTargetLevels || []), ...addition.rows.map(row => row[0])])];
   }
   for (const source of preview.newItems) {
     const existing = byId.get(source.i);
@@ -46,7 +71,8 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const widgetPath = process.argv[2];
   if (!widgetPath) throw new Error('Usage: node scripts/sync-th19-legacy.mjs WIDGET_PATH');
   const preview = JSON.parse(await readFile(new URL('../data/th19-preview.json', import.meta.url), 'utf8'));
-  const result = syncTh19Preview(await readFile(widgetPath, 'utf8'), preview);
+  const adjustments = JSON.parse(await readFile(new URL('../data/nov-2026-adjustments.json', import.meta.url), 'utf8'));
+  const result = syncTh19Preview(await readFile(widgetPath, 'utf8'), preview, adjustments);
   await writeFile(widgetPath, result.html);
   console.log(`Legacy widget contains ${result.count} items.`);
 }

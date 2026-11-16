@@ -12,6 +12,7 @@ const source = JSON.parse(await read('data/upgrades.json'));
 const corrections = JSON.parse(await read('data/corrections.json'));
 const unlockHallOverrides = JSON.parse(await read('data/unlock-hall-overrides.json'));
 const th19Preview = JSON.parse(await read('data/th19-preview.json'));
+const novemberAdjustments = JSON.parse(await read('data/nov-2026-adjustments.json'));
 const runtime = {};
 runInNewContext(await read('data/upgrades.js'), { window: runtime });
 const core = {};
@@ -55,10 +56,24 @@ test('generated data is in sync with the editable source files', () => {
   for (const correction of corrections) {
     expected.items.find(item => item.i === correction.itemId).l.find(row => row[0] === correction.fromLevel)[1] = correction.newValue;
   }
+  for (const adjustment of novemberAdjustments.rows) {
+    const item = expected.items.find(candidate => candidate.i === adjustment.itemId);
+    const row = item.l.find(candidate => candidate[0] === adjustment.level);
+    [row[1], row[2]] = adjustment.new;
+    item.previewTargetLevels ??= [];
+    item.previewTargetLevels.push(adjustment.level);
+  }
   for (const addition of th19Preview.appendLevels) {
     const item = expected.items.find(candidate => candidate.i === addition.itemId);
-    item.l.push(...addition.rows);
-    item.previewTargetLevels = addition.rows.map(row => row[0]);
+    for (const row of addition.rows) {
+      if (item.m === 'to') item.l.push(row);
+      else {
+        item.l.at(-1)[1] = row[1];
+        item.l.at(-1)[2] = row[2];
+        item.l.push([row[0], 0, 0, row[3]]);
+      }
+    }
+    item.previewTargetLevels = [...(item.previewTargetLevels || []), ...addition.rows.map(row => row[0])];
   }
   for (const item of th19Preview.newItems) {
     const copy = structuredClone(item);
@@ -67,8 +82,8 @@ test('generated data is in sync with the editable source files', () => {
     expected.items.push(copy);
   }
   expected.meta.itemCount = expected.items.length;
-  expected.meta.version = '0.1.2-preview';
-  expected.meta.knownGaps = ['19本多数建筑、英雄、兵种、小队及其他新等级尚未收录', '2026年11月旧等级费用与时间调整尚未全面复核', ...expected.meta.knownGaps];
+  expected.meta.version = '0.1.3-partial';
+  expected.meta.knownGaps = ['19本部分兵种、建筑、陷阱和守护者等级仍缺少可核实的时间与费用', '2026年11月旧等级费用与时间调整尚未全面复核', ...expected.meta.knownGaps];
   expected.meta.th19Preview = { checkedAt: th19Preview.checkedAt, status: th19Preview.status, source: th19Preview.source, note: th19Preview.note };
   expected.meta.corrections = corrections;
   assert.deepEqual(JSON.parse(JSON.stringify(catalog)), expected);
@@ -87,7 +102,23 @@ test('TH19 preview steps are selectable and labeled without inventing missing le
   const result = core.COC_CORE.calculateSelection(spell, 3, 4, 1, { boost: 20, extraBoost: 'none' });
   assert.equal(result.costs.Elixir, 25_600_000);
   assert.equal(result.time, 12 * 86400 + 9 * 3600);
-  assert.equal(catalog.meta.th19Preview.status, 'pre_release_reference_not_verified_in_game');
+  assert.equal(catalog.meta.th19Preview.status, 'third_party_reference_not_verified_in_game');
+});
+
+test('TH19 hero, troop, squad and TH18 pet upgrades use the correct target levels', () => {
+  const king = catalog.items.find(item => item.e === 'Barbarian King');
+  assert.deepEqual({ ...core.COC_CORE.stageUpgradeBounds(king, 19) }, { current: 110, target: 115 });
+  const kingResult = core.COC_CORE.calculateSelection(king, 110, 111, 1, { boost: 0 });
+  assert.equal(kingResult.time, 8 * 86400);
+  assert.equal(kingResult.costs['Dark Elixir'], 500000);
+  const barbarian = catalog.items.find(item => item.e === 'Barbarian');
+  assert.deepEqual({ ...core.COC_CORE.stageUpgradeBounds(barbarian, 19) }, { current: 13, target: 14 });
+  const squad = catalog.items.find(item => item.e === 'Barch Squad');
+  assert.deepEqual({ ...core.COC_CORE.stageUpgradeBounds(squad, 19) }, { current: 1, target: 3 });
+  assert.equal(core.COC_CORE.stageUpgradeRows(squad, 8).length, 0);
+  const jelly = catalog.items.find(item => item.e === 'Angry Jelly');
+  assert.ok(core.COC_CORE.stageUpgradeRows(jelly, 18).some(row => row[0] === 10));
+  assert.equal(core.COC_CORE.stageUpgradeRows(jelly, 19).length, 0);
 });
 
 test('Battle Machine 5→6 matches the user screenshot under Gold Pass 20%', () => {
@@ -100,12 +131,12 @@ test('Battle Machine 5→6 matches the user screenshot under Gold Pass 20%', () 
 
 test('Town Hall 16→17 is present and TH17 stage points to the correct step', () => {
   const townHall = catalog.items.find(item => item.e === 'Town Hall');
-  assert.deepEqual(Array.from(townHall.l.find(row => row[0] === 17)), [17, 10 * 86400, 16_000_000, 16]);
+  assert.deepEqual(Array.from(townHall.l.find(row => row[0] === 17)), [17, 9.5 * 86400, 16_000_000, 16]);
   assert.deepEqual({ ...core.COC_CORE.stageUpgradeBounds(townHall, 17) }, { current: 16, target: 17 });
   assert.deepEqual(Array.from(core.COC_CORE.stageUpgradeRows(townHall, 17), row => row[0]), [17]);
   assert.deepEqual(Array.from(core.COC_CORE.stageUpgradeRows(townHall, 18), row => row[0]), [18]);
   const result = core.COC_CORE.calculateSelection(townHall, 16, 17, 1, { boost: 20, extraBoost: 'none' });
-  assert.equal(result.time, 8 * 86400);
+  assert.equal(result.time, 7 * 86400 + 14 * 3600);
   assert.equal(result.costs.Gold, 12_800_000);
 });
 

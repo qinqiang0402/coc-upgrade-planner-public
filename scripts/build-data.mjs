@@ -7,6 +7,7 @@ const catalog = JSON.parse(await readFile(join(projectRoot, 'data/upgrades.json'
 const corrections = JSON.parse(await readFile(join(projectRoot, 'data/corrections.json'), 'utf8'));
 const unlockHallOverrides = JSON.parse(await readFile(join(projectRoot, 'data/unlock-hall-overrides.json'), 'utf8'));
 const th19Preview = JSON.parse(await readFile(join(projectRoot, 'data/th19-preview.json'), 'utf8'));
+const novemberAdjustments = JSON.parse(await readFile(join(projectRoot, 'data/nov-2026-adjustments.json'), 'utf8'));
 
 if (!Array.isArray(catalog.items) || catalog.items.length !== catalog.meta.itemCount) {
   throw new Error('Catalog item count does not match metadata.');
@@ -42,15 +43,33 @@ for (const correction of corrections) {
   row[1] = correction.newValue;
 }
 
+for (const adjustment of novemberAdjustments.rows) {
+  const item = byId.get(adjustment.itemId);
+  const row = item?.l.find(candidate => candidate[0] === adjustment.level);
+  if (item?.m !== 'to' || !row || row[1] !== adjustment.old[0] || row[2] !== adjustment.old[1]) {
+    throw new Error(`November adjustment source changed: ${adjustment.itemId} ${adjustment.level}`);
+  }
+  [row[1], row[2]] = adjustment.new;
+  item.previewTargetLevels ??= [];
+  item.previewTargetLevels.push(adjustment.level);
+}
+
 for (const addition of th19Preview.appendLevels) {
   const item = byId.get(addition.itemId);
-  if (!item || item.m !== 'to') throw new Error(`Unsupported TH19 preview item: ${addition.itemId}`);
+  if (!item || !['to', 'from'].includes(item.m)) throw new Error(`Unsupported TH19 preview item: ${addition.itemId}`);
   let previous = item.l[item.l.length - 1][0];
   for (const row of addition.rows) {
     if (row[0] !== ++previous) throw new Error(`Nonconsecutive TH19 preview level: ${addition.itemId}`);
-    item.l.push(row);
+    if (item.m === 'to') item.l.push(row);
+    else {
+      const tail = item.l.at(-1);
+      if (tail[1] !== 0 || tail[2] !== 0) throw new Error(`Expected terminal row: ${addition.itemId}`);
+      tail[1] = row[1];
+      tail[2] = row[2];
+      item.l.push([row[0], 0, 0, row[3]]);
+    }
   }
-  item.previewTargetLevels = addition.rows.map(row => row[0]);
+  item.previewTargetLevels = [...(item.previewTargetLevels || []), ...addition.rows.map(row => row[0])];
 }
 for (const item of th19Preview.newItems) {
   if (byId.has(item.i) || catalog.items.some(existing => existing.v === item.v && existing.e === item.e)) {
@@ -62,9 +81,9 @@ for (const item of th19Preview.newItems) {
   byId.set(item.i, item);
 }
 catalog.meta.itemCount = catalog.items.length;
-catalog.meta.version = '0.1.2-preview';
+catalog.meta.version = '0.1.3-partial';
 catalog.meta.knownGaps = [
-  '19本多数建筑、英雄、兵种、小队及其他新等级尚未收录',
+  '19本部分兵种、建筑、陷阱和守护者等级仍缺少可核实的时间与费用',
   '2026年11月旧等级费用与时间调整尚未全面复核',
   ...catalog.meta.knownGaps
 ];

@@ -6,6 +6,7 @@ import { syncTh19Preview } from '../scripts/sync-th19-legacy.mjs';
 
 const source = JSON.parse(await readFile(new URL('../data/upgrades.json', import.meta.url)));
 const preview = JSON.parse(await readFile(new URL('../data/th19-preview.json', import.meta.url)));
+const adjustments = JSON.parse(await readFile(new URL('../data/nov-2026-adjustments.json', import.meta.url)));
 
 test('legacy preview merge preserves existing rows and is safe to repeat', () => {
   const oldItems = structuredClone(source.items);
@@ -16,10 +17,20 @@ test('legacy preview merge preserves existing rows and is safe to repeat', () =>
   const newItems = JSON.parse(Buffer.from(encoded, 'base64').toString('utf8'));
   for (const old of oldItems) {
     const current = newItems.find(item => item.i === old.i);
-    assert.deepEqual(current.l.slice(0, old.l.length), old.l, old.e);
+    const addition = preview.appendLevels.find(entry => entry.itemId === old.i);
+    const unchangedLength = addition && old.m === 'from' ? old.l.length - 1 : old.l.length;
+    assert.deepEqual(current.l.slice(0, unchangedLength), old.l.slice(0, unchangedLength), old.e);
     assert.equal(current.n, old.n, old.e);
   }
   assert.equal(syncTh19Preview(result.html, preview).html, result.html);
+});
+
+test('legacy town hall reductions update once without changing other rows', () => {
+  const html = `atob('${Buffer.from(JSON.stringify(source.items)).toString('base64')}')`;
+  const first = syncTh19Preview(html, preview, adjustments).html;
+  assert.equal(syncTh19Preview(first, preview, adjustments).html, first);
+  const items = JSON.parse(Buffer.from(first.match(/atob\('([^']+)'\)/)[1], 'base64').toString());
+  assert.deepEqual(items.find(item => item.i === 'u2').l.find(row => row[0] === 18), [18, 864000, 20000000, 17]);
 });
 
 test('legacy TH19 shortcut shows the correct stage and keeps saved notes', { skip: !process.env.COC_LEGACY_WIDGET }, async () => {
@@ -63,7 +74,7 @@ test('legacy TH19 shortcut shows the correct stage and keeps saved notes', { ski
   assert.equal(get('coc-item').value, 'u2');
   assert.equal(get('coc-current').value, '18');
   assert.equal(get('coc-target').value, '19');
-  assert.match(get('coc-level-body').innerHTML, /上线前资料 · 待核对/);
+  assert.match(get('coc-level-body').innerHTML, /第三方资料 · 待核对/);
   assert.match(get('coc-level-body').innerHTML, /13天/);
   get('coc-all-stages').emit('click');
   assert.equal(get('coc-plan-note').value, '原有备注');

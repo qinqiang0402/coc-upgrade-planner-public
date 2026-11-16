@@ -233,7 +233,7 @@
       <tr>
         <td class="text-nowrap">${current === 0 ? '未解锁' : `${current}级`} → ${target}级</td>
         <td class="text-nowrap">${item.v === 'builderBase' ? 'BH' : 'TH'}${hall}</td>
-        <td class="text-end text-nowrap">${result.time ? duration(result.time) : '即时完成'}${item.previewTargetLevels?.includes(target) ? '<div class="data-tag">上线前资料 · 待核对</div>' : ''}${correction ? '<div class="data-tag" title="来自游戏内截图；无加成基础时间仍需单独确认">截图校正 · 基础值推定</div>' : ''}</td>
+        <td class="text-end text-nowrap">${result.time ? duration(result.time) : '即时完成'}${item.previewTargetLevels?.includes(target) ? '<div class="data-tag">第三方资料 · 待核对</div>' : ''}${correction ? '<div class="data-tag" title="来自游戏内截图；无加成基础时间仍需单独确认">截图校正 · 基础值推定</div>' : ''}</td>
         <td class="text-end"><span class="coc-resource-list">${costText(result.costs)}</span></td>
       </tr>`;
     }).join('');
@@ -322,7 +322,7 @@
     }
     els.add.disabled = false;
     els.selectedName.textContent = item.n;
-    els.selectedMeta.textContent = [item.n !== item.e ? item.e : '', item.o, item.previewTargetLevels?.length ? '部分等级为上线前资料，待游戏内核对' : '',
+    els.selectedMeta.textContent = [item.n !== item.e ? item.e : '', item.o, item.previewTargetLevels?.length ? '部分等级来自第三方，待游戏内核对' : '',
       selectedStage() ? `${stageLabel()} 阶段升级` : ''].filter(Boolean).join(' · ') || '升级数据';
     const hallBadge = item.e === 'Town Hall' || item.e === 'Builder Hall'
       ? `已收录至${item.v === 'builderBase' ? 'BH' : 'TH'}${maxLevel(item)}` : hallLabel(item);
@@ -342,7 +342,7 @@
     const comparison = [];
     if (result.baseTime !== result.time) comparison.push(`原始 ${duration(result.baseTime)}`);
     const base = comparison.length ? `（${comparison.join(' · ')}）` : '';
-    const previewWarning = item.previewTargetLevels?.some(level => level > result.current && level <= result.target) ? '（含上线前资料，待核对）' : '';
+    const previewWarning = item.previewTargetLevels?.some(level => level > result.current && level <= result.target) ? '（含第三方资料，待核对）' : '';
     els.preview.textContent = `${result.current}级 → ${result.target}级：${timeText}${base}；${costText(result.costs)}${previewWarning}`;
   }
 
@@ -427,7 +427,7 @@
     } else {
       els.body.innerHTML = results.map((result, index) => `
         <tr>
-          <td class="coc-plan-name">${escapeHtml(result.item.n)}<span class="text-small text-muted">${categoryLabels[result.item.c]} · ${streamLabels[result.item.s]}</span>${result.item.previewTargetLevels?.some(level => level > result.current && level <= result.target) ? '<span class="data-tag">上线前资料 · 待核对</span>' : ''}</td>
+          <td class="coc-plan-name">${escapeHtml(result.item.n)}<span class="text-small text-muted">${categoryLabels[result.item.c]} · ${streamLabels[result.item.s]}</span>${result.item.previewTargetLevels?.some(level => level > result.current && level <= result.target) ? '<span class="data-tag">第三方资料 · 待核对</span>' : ''}</td>
           <td class="text-nowrap">${result.current} → ${result.target}</td>
           <td class="text-end">${result.quantity}</td>
           <td class="text-end text-nowrap">${result.time ? duration(result.time) : '即时'}</td>

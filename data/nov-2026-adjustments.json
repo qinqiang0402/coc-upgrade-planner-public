@@ -1,0 +1,13 @@
+{
+  "source": "https://www.clash.ninja/guides/when-is-the-next-update",
+  "status": "third_party_sneak_peek_not_verified_in_game",
+  "checkedAt": "2026-11-16",
+  "rows": [
+    {"itemId":"u2","level":13,"old":[604800,9000000],"new":[561600,9000000]},
+    {"itemId":"u2","level":14,"old":[648000,12000000],"new":[604800,11500000]},
+    {"itemId":"u2","level":15,"old":[691200,13000000],"new":[648000,13000000]},
+    {"itemId":"u2","level":16,"old":[777600,15000000],"new":[734400,15000000]},
+    {"itemId":"u2","level":17,"old":[864000,16000000],"new":[820800,16000000]},
+    {"itemId":"u2","level":18,"old":[1036800,25000000],"new":[864000,20000000]}
+  ]
+}
